@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.hanttamhanttam.user.mapper.UserMapper">
+
+    <select id="findByEmail"
+            resultType="com.hanttamhanttam.user.domain.User">
+        SELECT
+        user_id,
+        email,
+        password,
+        nickname,
+        created_at,
+        updated_at
+        FROM users
+        WHERE email = #{email}
+    </select>
+
+    <insert id="insert"
+            parameterType="com.hanttamhanttam.user.domain.User"
+            useGeneratedKeys="true"
+            keyProperty="userId"
+            keyColumn="user_id">
+        INSERT INTO users (
+        email,
+        password,
+        nickname,
+        created_at,
+        updated_at
+        )
+        VALUES (
+        #{email},
+        #{password},
+        #{nickname},
+        NOW(),
+        NOW()
+        )
+    </insert>
+
+</mapper>
