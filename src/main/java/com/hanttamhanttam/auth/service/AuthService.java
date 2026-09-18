@@ -1,5 +1,6 @@
 package com.hanttamhanttam.auth.service;
 
+import com.hanttamhanttam.auth.dto.LoginRequest;
 import com.hanttamhanttam.auth.dto.SignupRequest;
 import com.hanttamhanttam.auth.dto.SignupResponse;
 import com.hanttamhanttam.user.domain.User;
@@ -36,5 +37,24 @@ public class AuthService {
                 user.getEmail(),
                 user.getNickname()
         );
+    }
+
+    public User authenticate(LoginRequest request) {
+        User user = userMapper.findByEmail(request.getEmail());
+
+        if(user == null) {
+            throw new IllegalArgumentException(
+                    "이메일 또는 비밀번호가 올바르지 않습니다."
+            );
+        }
+        if(!passwordEncoder.matches(
+                request.getPassword(),
+                user.getPassword()
+        )) {
+            throw new IllegalArgumentException(
+                    "이메일 또는 비밀번호가 올바르지 않습니다."
+            );
+        }
+        return user;
     }
 }
