@@ -5,7 +5,10 @@ import com.hanttamhanttam.auth.dto.LoginResult;
 import com.hanttamhanttam.auth.dto.SignupRequest;
 import com.hanttamhanttam.auth.dto.SignupResponse;
 import com.hanttamhanttam.auth.exception.InvalidCredentialsException;
+import com.hanttamhanttam.auth.exception.InvalidRefreshTokenException;
 import com.hanttamhanttam.auth.service.AuthService;
+import com.hanttamhanttam.common.exception.GlobalExceptionHandler;
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -17,13 +20,16 @@ import com.hanttamhanttam.common.config.SecurityConfig;
 import org.springframework.context.annotation.Import;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 // HTTP / JSON / Validation 검증
 @WebMvcTest(AuthController.class)
-@Import(SecurityConfig.class)
+@Import({
+        SecurityConfig.class,
+        GlobalExceptionHandler.class
+})
 class AuthControllerTest {
 
     @Autowired
@@ -207,6 +213,79 @@ class AuthControllerTest {
                         jsonPath("$.message")
                                 .value(
                                         "이메일 또는 비밀번호가 올바르지 않습니다."
+                                )
+                );
+    }
+
+    @Test
+    void refresh_success() throws Exception {
+
+        // given
+        when(authService.refresh("refresh-token"))
+                .thenReturn("new-access-token");
+
+        // when & then
+        mockMvc.perform(
+                        post("/api/auth/refresh")
+                                .cookie(
+                                        new Cookie(
+                                                "refreshToken",
+                                                "refresh-token"
+                                        )
+                                )
+                )
+                .andExpect(status().isOk())
+                .andExpect(
+                        jsonPath("$.accessToken")
+                                .value("new-access-token")
+                );
+
+        verify(authService)
+                .refresh("refresh-token");
+    }
+
+    @Test
+    void refresh_withoutCookie_returns401()
+            throws Exception {
+
+        mockMvc.perform(
+                        post("/api/auth/refresh")
+                )
+                .andExpect(status().isUnauthorized())
+                .andExpect(
+                        jsonPath("$.message")
+                                .value(
+                                        "유효하지 않은 Refresh Token입니다."
+                                )
+                );
+
+        verify(authService, never())
+                .refresh(anyString());
+    }
+
+    @Test
+    void refresh_invalidToken_returns401()
+            throws Exception {
+
+        when(authService.refresh("invalid-refresh-token"))
+                .thenThrow(
+                        new InvalidRefreshTokenException()
+                );
+
+        mockMvc.perform(
+                        post("/api/auth/refresh")
+                                .cookie(
+                                        new Cookie(
+                                                "refreshToken",
+                                                "invalid-refresh-token"
+                                        )
+                                )
+                )
+                .andExpect(status().isUnauthorized())
+                .andExpect(
+                        jsonPath("$.message")
+                                .value(
+                                        "유효하지 않은 Refresh Token입니다."
                                 )
                 );
     }

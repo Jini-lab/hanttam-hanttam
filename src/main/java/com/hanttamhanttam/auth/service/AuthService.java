@@ -3,6 +3,7 @@ package com.hanttamhanttam.auth.service;
 import com.hanttamhanttam.auth.domain.RefreshToken;
 import com.hanttamhanttam.auth.dto.*;
 import com.hanttamhanttam.auth.exception.InvalidCredentialsException;
+import com.hanttamhanttam.auth.exception.InvalidRefreshTokenException;
 import com.hanttamhanttam.auth.mapper.RefreshTokenMapper;
 import com.hanttamhanttam.common.security.JwtProvider;
 import com.hanttamhanttam.common.security.TokenHasher;
@@ -95,5 +96,36 @@ public class AuthService {
                 accessToken,
                 refreshToken
         );
+    }
+
+    public String refresh(String refreshToken) {
+        // 1. JWT 자체가 유효한지 확인
+        if (!jwtProvider.validateToken(refreshToken)) {
+            throw new InvalidRefreshTokenException();
+        }
+
+        // 2. JWT에서 사용자 식별
+        Long userId =
+                jwtProvider.getUserId(refreshToken);
+
+        // 3. DB에 저장된 Refresh Token 조회
+        RefreshToken savedToken =
+                refreshTokenMapper.findByUserId(userId);
+
+        if (savedToken == null) {
+            throw new InvalidRefreshTokenException();
+        }
+
+        // 4. 전달받은 Refresh Token을 동일하게 SHA-256
+        String tokenHash =
+                tokenHasher.hash(refreshToken);
+
+        // 5. DB hash와 비교
+        if (!tokenHash.equals(savedToken.getTokenHash())) {
+            throw new InvalidRefreshTokenException();
+        }
+
+        // 6. 새로운 Access Token 발급
+        return jwtProvider.createAccessToken(userId);
     }
 }

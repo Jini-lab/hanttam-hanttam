@@ -3,6 +3,7 @@ package com.hanttamhanttam.auth.service;
 import com.hanttamhanttam.auth.domain.RefreshToken;
 import com.hanttamhanttam.auth.dto.*;
 import com.hanttamhanttam.auth.exception.InvalidCredentialsException;
+import com.hanttamhanttam.auth.exception.InvalidRefreshTokenException;
 import com.hanttamhanttam.auth.mapper.RefreshTokenMapper;
 import com.hanttamhanttam.common.security.JwtProvider;
 import com.hanttamhanttam.common.security.TokenHasher;
@@ -294,5 +295,102 @@ class AuthServiceTest {
                 expiresAt,
                 savedToken.getExpiresAt()
         );
+    }
+
+    @Test
+    void refresh_success() {
+
+        // given
+        String refreshToken = "refresh-token";
+
+        RefreshToken savedToken = new RefreshToken();
+        savedToken.setUserId(1L);
+        savedToken.setTokenHash("hashed-refresh-token");
+
+        when(jwtProvider.validateToken(refreshToken))
+                .thenReturn(true);
+
+        when(jwtProvider.getUserId(refreshToken))
+                .thenReturn(1L);
+
+        when(refreshTokenMapper.findByUserId(1L))
+                .thenReturn(savedToken);
+
+        when(tokenHasher.hash(refreshToken))
+                .thenReturn("hashed-refresh-token");
+
+        when(jwtProvider.createAccessToken(1L))
+                .thenReturn("new-access-token");
+
+
+        // when
+        String accessToken =
+                authService.refresh(refreshToken);
+
+
+        // then
+        assertEquals(
+                "new-access-token",
+                accessToken
+        );
+
+        verify(jwtProvider)
+                .createAccessToken(1L);
+    }
+
+    @Test
+    void refresh_hashMismatch_throwsException() {
+
+        // given
+        String refreshToken = "old-refresh-token";
+
+        RefreshToken savedToken = new RefreshToken();
+        savedToken.setUserId(1L);
+        savedToken.setTokenHash("new-token-hash");
+
+        when(jwtProvider.validateToken(refreshToken))
+                .thenReturn(true);
+
+        when(jwtProvider.getUserId(refreshToken))
+                .thenReturn(1L);
+
+        when(refreshTokenMapper.findByUserId(1L))
+                .thenReturn(savedToken);
+
+        when(tokenHasher.hash(refreshToken))
+                .thenReturn("old-token-hash");
+
+
+        // when & then
+        assertThrows(
+                InvalidRefreshTokenException.class,
+                () -> authService.refresh(refreshToken)
+        );
+
+        verify(jwtProvider, never())
+                .createAccessToken(anyLong());
+    }
+
+    @Test
+    void refresh_invalidToken_throwsException() {
+
+        // given
+        String refreshToken = "invalid-token";
+
+        when(jwtProvider.validateToken(refreshToken))
+                .thenReturn(false);
+
+
+        // when & then
+        assertThrows(
+                InvalidRefreshTokenException.class,
+                () -> authService.refresh(refreshToken)
+        );
+
+        verify(refreshTokenMapper, never())
+                .findByUserId(anyLong());
+
+        verify(jwtProvider, never())
+                .createAccessToken(anyLong());
     }
 }

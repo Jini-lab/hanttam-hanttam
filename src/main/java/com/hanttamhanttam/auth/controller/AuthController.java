@@ -1,6 +1,7 @@
 package com.hanttamhanttam.auth.controller;
 
 import com.hanttamhanttam.auth.dto.*;
+import com.hanttamhanttam.auth.exception.InvalidRefreshTokenException;
 import com.hanttamhanttam.auth.service.AuthService;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -9,10 +10,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.time.Duration;
 
@@ -66,5 +64,25 @@ public class AuthController {
                 );
 
         return ResponseEntity.ok(loginResponse);
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<TokenRefreshResponse> refresh(
+            @CookieValue(
+                    value = "refreshToken",
+                    required = false
+            ) String refreshToken
+    ) {
+
+        if (refreshToken == null) {
+            throw new InvalidRefreshTokenException();
+        }
+
+        String accessToken =
+                authService.refresh(refreshToken);
+
+        return ResponseEntity.ok(
+                new TokenRefreshResponse(accessToken)
+        );
     }
 }
