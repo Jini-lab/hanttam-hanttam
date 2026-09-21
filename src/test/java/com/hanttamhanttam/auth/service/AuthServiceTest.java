@@ -1,10 +1,8 @@
 package com.hanttamhanttam.auth.service;
 
 import com.hanttamhanttam.auth.domain.RefreshToken;
-import com.hanttamhanttam.auth.dto.LoginRequest;
-import com.hanttamhanttam.auth.dto.LoginResponse;
-import com.hanttamhanttam.auth.dto.SignupRequest;
-import com.hanttamhanttam.auth.dto.SignupResponse;
+import com.hanttamhanttam.auth.dto.*;
+import com.hanttamhanttam.auth.exception.InvalidCredentialsException;
 import com.hanttamhanttam.auth.mapper.RefreshTokenMapper;
 import com.hanttamhanttam.common.security.JwtProvider;
 import com.hanttamhanttam.common.security.TokenHasher;
@@ -173,9 +171,9 @@ class AuthServiceTest {
 
 
         // when & then
-        IllegalArgumentException exception =
+        InvalidCredentialsException exception =
                 assertThrows(
-                        IllegalArgumentException.class,
+                        InvalidCredentialsException.class,
                         () -> authService.authenticate(request)
                 );
 
@@ -211,9 +209,9 @@ class AuthServiceTest {
 
 
         // when & then
-        IllegalArgumentException exception =
+        InvalidCredentialsException exception =
                 assertThrows(
-                        IllegalArgumentException.class,
+                        InvalidCredentialsException.class,
                         () -> authService.authenticate(request)
                 );
 
@@ -262,19 +260,19 @@ class AuthServiceTest {
 
 
         // when
-        LoginResponse response =
+        LoginResult result =
                 authService.login(request);
 
 
         // then
         assertEquals(
                 "access-token",
-                response.getAccessToken()
+                result.getAccessToken()
         );
 
         assertEquals(
                 "refresh-token",
-                response.getRefreshToken()
+                result.getRefreshToken()
         );
 
         ArgumentCaptor<RefreshToken> captor =

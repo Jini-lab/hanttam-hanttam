@@ -1,11 +1,15 @@
 package com.hanttamhanttam.auth.controller;
 
+import com.hanttamhanttam.auth.dto.LoginRequest;
+import com.hanttamhanttam.auth.dto.LoginResult;
 import com.hanttamhanttam.auth.dto.SignupRequest;
 import com.hanttamhanttam.auth.dto.SignupResponse;
+import com.hanttamhanttam.auth.exception.InvalidCredentialsException;
 import com.hanttamhanttam.auth.service.AuthService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.http.HttpHeaders;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
@@ -15,8 +19,7 @@ import org.springframework.context.annotation.Import;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 // HTTP / JSON / Validation 검증
 @WebMvcTest(AuthController.class)
@@ -104,4 +107,107 @@ class AuthControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
+    @Test
+    void login_success() throws Exception {
+
+        // given
+        LoginRequest request =
+                new LoginRequest(
+                        "knitter@test.com",
+                        "password123!"
+                );
+
+        LoginResult result =
+                new LoginResult(
+                        "access-token",
+                        "refresh-token"
+                );
+
+        when(authService.login(any(LoginRequest.class)))
+                .thenReturn(result);
+
+
+        // when & then
+        mockMvc.perform(
+                        post("/api/auth/login")
+                                .contentType("application/json")
+                                .content(
+                                        objectMapper.writeValueAsString(request)
+                                )
+                )
+                .andExpect(status().isOk())
+                .andExpect(
+                        jsonPath("$.accessToken")
+                                .value("access-token")
+                )
+                .andExpect(
+                        header().string(
+                                HttpHeaders.SET_COOKIE,
+                                org.hamcrest.Matchers.containsString(
+                                        "refreshToken=refresh-token"
+                                )
+                        )
+                )
+                .andExpect(
+                        header().string(
+                                HttpHeaders.SET_COOKIE,
+                                org.hamcrest.Matchers.containsString(
+                                        "HttpOnly"
+                                )
+                        )
+                )
+                .andExpect(
+                        jsonPath("$.refreshToken").doesNotExist()
+                );
+    }
+
+    @Test
+    void login_invalidEmail_returns400() throws Exception {
+
+        LoginRequest request =
+                new LoginRequest(
+                        "invalid-email",
+                        "password123!"
+                );
+
+        mockMvc.perform(
+                        post("/api/auth/login")
+                                .contentType("application/json")
+                                .content(
+                                        objectMapper.writeValueAsString(request)
+                                )
+                )
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void login_wrongPassword_returns401()
+            throws Exception {
+
+        LoginRequest request =
+                new LoginRequest(
+                        "knitter@test.com",
+                        "wrongPassword"
+                );
+
+        when(authService.login(any(LoginRequest.class)))
+                .thenThrow(
+                        new InvalidCredentialsException()
+                );
+
+        mockMvc.perform(
+                        post("/api/auth/login")
+                                .contentType("application/json")
+                                .content(
+                                        objectMapper.writeValueAsString(request)
+                                )
+                )
+                .andExpect(status().isUnauthorized())
+                .andExpect(
+                        jsonPath("$.message")
+                                .value(
+                                        "이메일 또는 비밀번호가 올바르지 않습니다."
+                                )
+                );
+    }
 }

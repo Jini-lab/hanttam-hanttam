@@ -1,10 +1,8 @@
 package com.hanttamhanttam.auth.service;
 
 import com.hanttamhanttam.auth.domain.RefreshToken;
-import com.hanttamhanttam.auth.dto.LoginRequest;
-import com.hanttamhanttam.auth.dto.LoginResponse;
-import com.hanttamhanttam.auth.dto.SignupRequest;
-import com.hanttamhanttam.auth.dto.SignupResponse;
+import com.hanttamhanttam.auth.dto.*;
+import com.hanttamhanttam.auth.exception.InvalidCredentialsException;
 import com.hanttamhanttam.auth.mapper.RefreshTokenMapper;
 import com.hanttamhanttam.common.security.JwtProvider;
 import com.hanttamhanttam.common.security.TokenHasher;
@@ -51,23 +49,19 @@ public class AuthService {
         User user = userMapper.findByEmail(request.getEmail());
 
         if(user == null) {
-            throw new IllegalArgumentException(
-                    "이메일 또는 비밀번호가 올바르지 않습니다."
-            );
+            throw new InvalidCredentialsException();
         }
         if(!passwordEncoder.matches(
                 request.getPassword(),
                 user.getPassword()
         )) {
-            throw new IllegalArgumentException(
-                    "이메일 또는 비밀번호가 올바르지 않습니다."
-            );
+            throw new InvalidCredentialsException();
         }
         return user;
     }
 
     @Transactional
-    public LoginResponse login(LoginRequest request) {
+    public LoginResult login(LoginRequest request) {
         // 1. 이메일 / 비밀번호 검증
         User user = authenticate(request);
 
@@ -97,7 +91,7 @@ public class AuthService {
         refreshTokenMapper.upsert(refreshTokenEntity);
 
         // 7. Controller에 전달
-        return new LoginResponse(
+        return new LoginResult(
                 accessToken,
                 refreshToken
         );
