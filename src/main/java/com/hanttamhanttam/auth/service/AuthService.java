@@ -1,8 +1,13 @@
 package com.hanttamhanttam.auth.service;
 
+import com.hanttamhanttam.auth.domain.RefreshToken;
 import com.hanttamhanttam.auth.dto.LoginRequest;
+import com.hanttamhanttam.auth.dto.LoginResponse;
 import com.hanttamhanttam.auth.dto.SignupRequest;
 import com.hanttamhanttam.auth.dto.SignupResponse;
+import com.hanttamhanttam.auth.mapper.RefreshTokenMapper;
+import com.hanttamhanttam.common.security.JwtProvider;
+import com.hanttamhanttam.common.security.TokenHasher;
 import com.hanttamhanttam.user.domain.User;
 import com.hanttamhanttam.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +21,9 @@ public class AuthService {
 
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
+    private final JwtProvider jwtProvider;
+    private final TokenHasher tokenHasher;
+    private final RefreshTokenMapper refreshTokenMapper;
 
     @Transactional
     public SignupResponse signup(SignupRequest request) {
@@ -56,5 +64,42 @@ public class AuthService {
             );
         }
         return user;
+    }
+
+    @Transactional
+    public LoginResponse login(LoginRequest request) {
+        // 1. 이메일 / 비밀번호 검증
+        User user = authenticate(request);
+
+        // 2. Access Token 생성
+        String accessToken =
+                jwtProvider.createAccessToken(user.getUserId());
+
+        // 3. Refresh Token 생성
+        String refreshToken =
+                jwtProvider.createRefreshToken(user.getUserId());
+
+        // 4. Refresh Token 해시
+        String tokenHash =
+                tokenHasher.hash(refreshToken);
+
+        // 5. DB에 저장할 객체 생성
+        RefreshToken refreshTokenEntity =
+                new RefreshToken();
+
+        refreshTokenEntity.setUserId(user.getUserId());
+        refreshTokenEntity.setTokenHash(tokenHash);
+        refreshTokenEntity.setExpiresAt(
+                jwtProvider.getRefreshTokenExpiresAt()
+        );
+
+        // 6. 저장 또는 교체
+        refreshTokenMapper.upsert(refreshTokenEntity);
+
+        // 7. Controller에 전달
+        return new LoginResponse(
+                accessToken,
+                refreshToken
+        );
     }
 }

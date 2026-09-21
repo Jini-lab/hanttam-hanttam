@@ -1,16 +1,24 @@
 package com.hanttamhanttam.auth.service;
 
+import com.hanttamhanttam.auth.domain.RefreshToken;
 import com.hanttamhanttam.auth.dto.LoginRequest;
+import com.hanttamhanttam.auth.dto.LoginResponse;
 import com.hanttamhanttam.auth.dto.SignupRequest;
 import com.hanttamhanttam.auth.dto.SignupResponse;
+import com.hanttamhanttam.auth.mapper.RefreshTokenMapper;
+import com.hanttamhanttam.common.security.JwtProvider;
+import com.hanttamhanttam.common.security.TokenHasher;
 import com.hanttamhanttam.user.domain.User;
 import com.hanttamhanttam.user.mapper.UserMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
+
+import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -25,6 +33,15 @@ class AuthServiceTest {
 
     @Mock
     private PasswordEncoder passwordEncoder;
+
+    @Mock
+    private JwtProvider jwtProvider;
+
+    @Mock
+    private TokenHasher tokenHasher;
+
+    @Mock
+    private RefreshTokenMapper refreshTokenMapper;
 
     @InjectMocks
     private AuthService authService;
@@ -203,6 +220,81 @@ class AuthServiceTest {
         assertEquals(
                 "이메일 또는 비밀번호가 올바르지 않습니다.",
                 exception.getMessage()
+        );
+    }
+
+    @Test
+    void login_success() {
+
+        // given
+        LoginRequest request = new LoginRequest(
+                "knitter@test.com",
+                "password123!"
+        );
+
+        User user = new User();
+        user.setUserId(1L);
+        user.setEmail("knitter@test.com");
+        user.setPassword("encodedPassword");
+
+        when(userMapper.findByEmail("knitter@test.com"))
+                .thenReturn(user);
+
+        when(passwordEncoder.matches(
+                "password123!",
+                "encodedPassword"
+        )).thenReturn(true);
+
+        when(jwtProvider.createAccessToken(1L))
+                .thenReturn("access-token");
+
+        when(jwtProvider.createRefreshToken(1L))
+                .thenReturn("refresh-token");
+
+        when(tokenHasher.hash("refresh-token"))
+                .thenReturn("hashed-refresh-token");
+
+        LocalDateTime expiresAt =
+                LocalDateTime.now().plusDays(14);
+
+        when(jwtProvider.getRefreshTokenExpiresAt())
+                .thenReturn(expiresAt);
+
+
+        // when
+        LoginResponse response =
+                authService.login(request);
+
+
+        // then
+        assertEquals(
+                "access-token",
+                response.getAccessToken()
+        );
+
+        assertEquals(
+                "refresh-token",
+                response.getRefreshToken()
+        );
+
+        ArgumentCaptor<RefreshToken> captor =
+                ArgumentCaptor.forClass(RefreshToken.class);
+
+        verify(refreshTokenMapper)
+                .upsert(captor.capture());
+
+        RefreshToken savedToken = captor.getValue();
+
+        assertEquals(1L, savedToken.getUserId());
+
+        assertEquals(
+                "hashed-refresh-token",
+                savedToken.getTokenHash()
+        );
+
+        assertEquals(
+                expiresAt,
+                savedToken.getExpiresAt()
         );
     }
 }
