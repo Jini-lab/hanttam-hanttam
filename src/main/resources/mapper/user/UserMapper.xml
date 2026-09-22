@@ -39,4 +39,15 @@
         )
     </insert>
 
+    <select id="findById" resultType="com.hanttamhanttam.user.domain.User">
+        SELECT
+            user_id,
+            email,
+            password,
+            nickname,
+            created_at,
+            updated_at
+        FROM users
+        WHERE user_id = #{userId}
+    </select>
 </mapper>

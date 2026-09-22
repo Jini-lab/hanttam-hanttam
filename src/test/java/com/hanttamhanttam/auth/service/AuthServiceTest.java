@@ -310,6 +310,9 @@ class AuthServiceTest {
         when(jwtProvider.validateToken(refreshToken))
                 .thenReturn(true);
 
+        when(jwtProvider.isRefreshToken(refreshToken))
+                .thenReturn(true);
+
         when(jwtProvider.getUserId(refreshToken))
                 .thenReturn(1L);
 
@@ -349,6 +352,9 @@ class AuthServiceTest {
         savedToken.setTokenHash("new-token-hash");
 
         when(jwtProvider.validateToken(refreshToken))
+                .thenReturn(true);
+
+        when(jwtProvider.isRefreshToken(refreshToken))
                 .thenReturn(true);
 
         when(jwtProvider.getUserId(refreshToken))
@@ -407,6 +413,9 @@ class AuthServiceTest {
         when(jwtProvider.validateToken(refreshToken))
                 .thenReturn(true);
 
+        when(jwtProvider.isRefreshToken(refreshToken))
+                .thenReturn(true);
+
         when(jwtProvider.getUserId(refreshToken))
                 .thenReturn(1L);
 
@@ -459,6 +468,9 @@ class AuthServiceTest {
         when(jwtProvider.validateToken(refreshToken))
                 .thenReturn(true);
 
+        when(jwtProvider.isRefreshToken(refreshToken))
+                .thenReturn(true);
+
         when(jwtProvider.getUserId(refreshToken))
                 .thenReturn(1L);
 
@@ -477,5 +489,84 @@ class AuthServiceTest {
 
         verify(refreshTokenMapper, never())
                 .deleteByUserId(anyLong());
+    }
+
+    @Test
+    void logout_accessToken_throwsException() {
+
+        // given
+        String accessToken = "access-token";
+
+        when(jwtProvider.validateToken(accessToken))
+                .thenReturn(true);
+
+        when(jwtProvider.isRefreshToken(accessToken))
+                .thenReturn(false);
+
+        // when & then
+        assertThrows(
+                InvalidRefreshTokenException.class,
+                () -> authService.logout(accessToken)
+        );
+
+        verify(refreshTokenMapper, never())
+                .deleteByUserId(anyLong());
+    }
+
+    @Test
+    void me_success() {
+
+        // given
+        User user = new User();
+        user.setUserId(1L);
+        user.setEmail("knitter@test.com");
+        user.setNickname("뜨개인");
+
+        when(userMapper.findById(1L))
+                .thenReturn(user);
+
+
+        // when
+        MeResponse response =
+                authService.me(1L);
+
+
+        // then
+        assertEquals(
+                1L,
+                response.getUserId()
+        );
+
+        assertEquals(
+                "knitter@test.com",
+                response.getEmail()
+        );
+
+        assertEquals(
+                "뜨개인",
+                response.getNickname()
+        );
+    }
+
+    @Test
+    void refresh_accessToken_throwsException() {
+
+        // given
+        String accessToken = "access-token";
+
+        when(jwtProvider.validateToken(accessToken))
+                .thenReturn(true);
+
+        when(jwtProvider.isRefreshToken(accessToken))
+                .thenReturn(false);
+
+        // when & then
+        assertThrows(
+                InvalidRefreshTokenException.class,
+                () -> authService.refresh(accessToken)
+        );
+
+        verify(refreshTokenMapper, never())
+                .findByUserId(anyLong());
     }
 }

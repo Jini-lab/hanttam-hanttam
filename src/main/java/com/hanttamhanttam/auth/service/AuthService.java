@@ -100,7 +100,7 @@ public class AuthService {
 
     public String refresh(String refreshToken) {
         // 1. JWT 자체가 유효한지 확인
-        if (!jwtProvider.validateToken(refreshToken)) {
+        if (!jwtProvider.validateToken(refreshToken) || !jwtProvider.isRefreshToken(refreshToken)) {
             throw new InvalidRefreshTokenException();
         }
 
@@ -132,7 +132,8 @@ public class AuthService {
     @Transactional
     public void logout(String refreshToken) {
         // 1. Refresh Token 자체 검증
-        if (!jwtProvider.validateToken(refreshToken)) {
+        if (!jwtProvider.validateToken(refreshToken)
+                || !jwtProvider.isRefreshToken(refreshToken)) {
             throw new InvalidRefreshTokenException();
         }
 
@@ -159,5 +160,20 @@ public class AuthService {
 
         // 6. DB에서 삭제
         refreshTokenMapper.deleteByUserId(userId);
+    }
+
+    public MeResponse me(Long userId) {
+
+        User user = userMapper.findById(userId);
+
+        if (user == null) {
+            throw new IllegalArgumentException("사용자를 찾을 수 없습니다.");
+        }
+
+        return new MeResponse(
+                user.getUserId(),
+                user.getEmail(),
+                user.getNickname()
+        );
     }
 }

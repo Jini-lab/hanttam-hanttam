@@ -31,16 +31,23 @@ public class JwtProvider {
     }
 
     public String createAccessToken(Long userId) {
-        return createToken(userId, accessTokenExpiration);
+        return createToken(
+                userId,
+                accessTokenExpiration,
+                "ACCESS");
     }
 
     public String createRefreshToken(Long userId) {
-        return createToken(userId, refreshTokenExpiration);
+        return createToken(
+                userId,
+                refreshTokenExpiration,
+                "REFRESH");
     }
 
     private String createToken(
             Long userId,
-            Long expiration
+            Long expiration,
+            String type
     ) {
         Date now = new Date();
         Date expiresAt =
@@ -48,6 +55,7 @@ public class JwtProvider {
 
         return Jwts.builder()
                 .subject(String.valueOf(userId))
+                .claim("type", type)
                 .issuedAt(now)
                 .expiration(expiresAt)
                 .signWith(secretKey)
@@ -72,6 +80,33 @@ public class JwtProvider {
                     .build()
                     .parseSignedClaims(token);
             return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public boolean isAccessToken(String token) {
+        return hasTokenType(token, "ACCESS");
+    }
+
+    public boolean isRefreshToken(String token) {
+        return hasTokenType(token, "REFRESH");
+    }
+
+    private boolean hasTokenType(
+            String token,
+            String expectedType
+    ) {
+        try {
+            String type = Jwts.parser()
+                    .verifyWith(secretKey)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload()
+                    .get("type", String.class);
+
+            return expectedType.equals(type);
+
         } catch (Exception e) {
             return false;
         }

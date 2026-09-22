@@ -1,18 +1,19 @@
 package com.hanttamhanttam.auth.controller;
 
-import com.hanttamhanttam.auth.dto.LoginRequest;
-import com.hanttamhanttam.auth.dto.LoginResult;
-import com.hanttamhanttam.auth.dto.SignupRequest;
-import com.hanttamhanttam.auth.dto.SignupResponse;
+import com.hanttamhanttam.auth.dto.*;
 import com.hanttamhanttam.auth.exception.InvalidCredentialsException;
 import com.hanttamhanttam.auth.exception.InvalidRefreshTokenException;
 import com.hanttamhanttam.auth.service.AuthService;
 import com.hanttamhanttam.common.exception.GlobalExceptionHandler;
+import com.hanttamhanttam.common.security.JwtAuthenticationFilter;
+import com.hanttamhanttam.common.security.JwtProvider;
 import jakarta.servlet.http.Cookie;
+import java.util.Collections;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.HttpHeaders;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
@@ -22,14 +23,17 @@ import org.springframework.context.annotation.Import;
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 // HTTP / JSON / Validation 검증
 @WebMvcTest(AuthController.class)
 @Import({
         SecurityConfig.class,
-        GlobalExceptionHandler.class
+        GlobalExceptionHandler.class,
+        JwtAuthenticationFilter.class
 })
 class AuthControllerTest {
 
@@ -41,6 +45,9 @@ class AuthControllerTest {
 
     @MockitoBean
     private AuthService authService;
+
+    @MockitoBean
+    private JwtProvider jwtProvider;
 
     @Test
     void signup_success() throws Exception {
@@ -345,5 +352,59 @@ class AuthControllerTest {
 
         verify(authService, never())
                 .logout(anyString());
+    }
+
+    @Test
+    void me_success() throws Exception {
+
+        // given
+        MeResponse response =
+                new MeResponse(
+                        1L,
+                        "knitter@test.com",
+                        "뜨개인"
+                );
+
+        when(authService.me(1L))
+                .thenReturn(response);
+
+        // when & then
+        mockMvc.perform(
+                        get("/api/auth/me")
+                                .with(
+                                        authentication(
+                                                new UsernamePasswordAuthenticationToken(
+                                                        1L,
+                                                        null,
+                                                        Collections.emptyList()
+                                                )
+                                        )
+                                )
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.userId").value(1L))
+                .andExpect(
+                        jsonPath("$.email")
+                                .value("knitter@test.com")
+                )
+                .andExpect(
+                        jsonPath("$.nickname")
+                                .value("뜨개인")
+                );
+
+        verify(authService).me(1L);
+    }
+
+    @Test
+    void me_withoutAuthentication_returns401()
+            throws Exception {
+
+        mockMvc.perform(
+                        get("/api/auth/me")
+                )
+                .andExpect(status().isUnauthorized());
+
+        verify(authService, never())
+                .me(anyLong());
     }
 }

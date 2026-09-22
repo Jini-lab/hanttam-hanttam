@@ -10,6 +10,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Duration;
@@ -119,5 +120,18 @@ public class AuthController {
         );
 
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<MeResponse> me(
+            Authentication authentication
+    ) {
+
+        Long userId =
+                (Long) authentication.getPrincipal();
+
+        return ResponseEntity.ok(
+                authService.me(userId)
+        );
     }
 }

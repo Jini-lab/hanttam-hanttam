@@ -91,4 +91,38 @@ class JwtProviderTest {
         // then
         assertFalse(result);
     }
+
+    @Test
+    void accessToken_hasAccessType() {
+
+        // given
+        String accessToken =
+                jwtProvider.createAccessToken(1L);
+
+        // when & then
+        assertTrue(
+                jwtProvider.isAccessToken(accessToken)
+        );
+
+        assertFalse(
+                jwtProvider.isRefreshToken(accessToken)
+        );
+    }
+
+    @Test
+    void refreshToken_hasRefreshType() {
+
+        // given
+        String refreshToken =
+                jwtProvider.createRefreshToken(1L);
+
+        // when & then
+        assertTrue(
+                jwtProvider.isRefreshToken(refreshToken)
+        );
+
+        assertFalse(
+                jwtProvider.isAccessToken(refreshToken)
+        );
+    }
 }
