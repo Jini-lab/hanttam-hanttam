@@ -128,4 +128,36 @@ public class AuthService {
         // 6. 새로운 Access Token 발급
         return jwtProvider.createAccessToken(userId);
     }
+
+    @Transactional
+    public void logout(String refreshToken) {
+        // 1. Refresh Token 자체 검증
+        if (!jwtProvider.validateToken(refreshToken)) {
+            throw new InvalidRefreshTokenException();
+        }
+
+        // 2. 사용자 식별
+        Long userId =
+                jwtProvider.getUserId(refreshToken);
+
+        // 3. DB Refresh Token 조회
+        RefreshToken savedToken =
+                refreshTokenMapper.findByUserId(userId);
+
+        if (savedToken == null) {
+            throw new InvalidRefreshTokenException();
+        }
+
+        // 4. 전달받은 토큰 hash
+        String tokenHash =
+                tokenHasher.hash(refreshToken);
+
+        // 5. 현재 DB에 저장된 토큰인지 확인
+        if (!tokenHash.equals(savedToken.getTokenHash())) {
+            throw new InvalidRefreshTokenException();
+        }
+
+        // 6. DB에서 삭제
+        refreshTokenMapper.deleteByUserId(userId);
+    }
 }

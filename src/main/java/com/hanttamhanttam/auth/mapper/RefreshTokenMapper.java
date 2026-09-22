@@ -8,4 +8,5 @@ public interface RefreshTokenMapper {
 
     RefreshToken findByUserId(Long userId);
     void upsert(RefreshToken refreshToken);
+    void deleteByUserId(Long userId);
 }

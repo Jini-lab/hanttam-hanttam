@@ -393,4 +393,89 @@ class AuthServiceTest {
         verify(jwtProvider, never())
                 .createAccessToken(anyLong());
     }
+
+    @Test
+    void logout_success() {
+
+        // given
+        String refreshToken = "refresh-token";
+
+        RefreshToken savedToken = new RefreshToken();
+        savedToken.setUserId(1L);
+        savedToken.setTokenHash("hashed-refresh-token");
+
+        when(jwtProvider.validateToken(refreshToken))
+                .thenReturn(true);
+
+        when(jwtProvider.getUserId(refreshToken))
+                .thenReturn(1L);
+
+        when(refreshTokenMapper.findByUserId(1L))
+                .thenReturn(savedToken);
+
+        when(tokenHasher.hash(refreshToken))
+                .thenReturn("hashed-refresh-token");
+
+
+        // when
+        authService.logout(refreshToken);
+
+
+        // then
+        verify(refreshTokenMapper)
+                .deleteByUserId(1L);
+    }
+
+    @Test
+    void logout_invalidToken_throwsException() {
+
+        // given
+        String refreshToken = "invalid-token";
+
+        when(jwtProvider.validateToken(refreshToken))
+                .thenReturn(false);
+
+
+        // when & then
+        assertThrows(
+                InvalidRefreshTokenException.class,
+                () -> authService.logout(refreshToken)
+        );
+
+        verify(refreshTokenMapper, never())
+                .deleteByUserId(anyLong());
+    }
+
+    @Test
+    void logout_hashMismatch_throwsException() {
+
+        // given
+        String refreshToken = "old-refresh-token";
+
+        RefreshToken savedToken = new RefreshToken();
+        savedToken.setUserId(1L);
+        savedToken.setTokenHash("current-token-hash");
+
+        when(jwtProvider.validateToken(refreshToken))
+                .thenReturn(true);
+
+        when(jwtProvider.getUserId(refreshToken))
+                .thenReturn(1L);
+
+        when(refreshTokenMapper.findByUserId(1L))
+                .thenReturn(savedToken);
+
+        when(tokenHasher.hash(refreshToken))
+                .thenReturn("old-token-hash");
+
+
+        // when & then
+        assertThrows(
+                InvalidRefreshTokenException.class,
+                () -> authService.logout(refreshToken)
+        );
+
+        verify(refreshTokenMapper, never())
+                .deleteByUserId(anyLong());
+    }
 }

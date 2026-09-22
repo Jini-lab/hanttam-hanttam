@@ -85,4 +85,39 @@ public class AuthController {
                 new TokenRefreshResponse(accessToken)
         );
     }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(
+            @CookieValue(
+                    value = "refreshToken",
+                    required = false
+            ) String refreshToken,
+            HttpServletResponse response
+    ) {
+
+        if (refreshToken == null) {
+            throw new InvalidRefreshTokenException();
+        }
+
+        authService.logout(refreshToken);
+
+        ResponseCookie deleteCookie =
+                ResponseCookie.from(
+                                "refreshToken",
+                                ""
+                        )
+                        .httpOnly(true)
+                        .secure(true)
+                        .sameSite("Lax")
+                        .path("/api/auth")
+                        .maxAge(Duration.ZERO)
+                        .build();
+
+        response.addHeader(
+                HttpHeaders.SET_COOKIE,
+                deleteCookie.toString()
+        );
+
+        return ResponseEntity.noContent().build();
+    }
 }

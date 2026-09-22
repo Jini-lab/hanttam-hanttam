@@ -19,6 +19,7 @@ import tools.jackson.databind.ObjectMapper;
 import com.hanttamhanttam.common.config.SecurityConfig;
 import org.springframework.context.annotation.Import;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -70,6 +71,7 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.email").value("knitter@test.com"))
                 .andExpect(jsonPath("$.nickname").value("뜨개인"));
     }
+
     @Test
     void signup_invalidEmail_returns400() throws Exception {
 
@@ -84,6 +86,7 @@ class AuthControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
     }
+
     @Test
     void signup_shortPassword_returns400() throws Exception {
 
@@ -98,6 +101,7 @@ class AuthControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
     }
+
     @Test
     void signup_blankNickname_returns400() throws Exception {
 
@@ -149,7 +153,7 @@ class AuthControllerTest {
                 .andExpect(
                         header().string(
                                 HttpHeaders.SET_COOKIE,
-                                org.hamcrest.Matchers.containsString(
+                                containsString(
                                         "refreshToken=refresh-token"
                                 )
                         )
@@ -157,7 +161,7 @@ class AuthControllerTest {
                 .andExpect(
                         header().string(
                                 HttpHeaders.SET_COOKIE,
-                                org.hamcrest.Matchers.containsString(
+                                containsString(
                                         "HttpOnly"
                                 )
                         )
@@ -288,5 +292,58 @@ class AuthControllerTest {
                                         "유효하지 않은 Refresh Token입니다."
                                 )
                 );
+    }
+
+    @Test
+    void logout_success() throws Exception {
+
+        mockMvc.perform(
+                        post("/api/auth/logout")
+                                .cookie(
+                                        new Cookie(
+                                                "refreshToken",
+                                                "refresh-token"
+                                        )
+                                )
+                )
+                .andExpect(status().isNoContent())
+                .andExpect(
+                        header().string(
+                                HttpHeaders.SET_COOKIE,
+                                containsString(
+                                        "refreshToken="
+                                )
+                        )
+                )
+                .andExpect(
+                        header().string(
+                                HttpHeaders.SET_COOKIE,
+                                containsString(
+                                        "Max-Age=0"
+                                )
+                        )
+                );
+
+        verify(authService)
+                .logout("refresh-token");
+    }
+
+    @Test
+    void logout_withoutCookie_returns401()
+            throws Exception {
+
+        mockMvc.perform(
+                        post("/api/auth/logout")
+                )
+                .andExpect(status().isUnauthorized())
+                .andExpect(
+                        jsonPath("$.message")
+                                .value(
+                                        "유효하지 않은 Refresh Token입니다."
+                                )
+                );
+
+        verify(authService, never())
+                .logout(anyString());
     }
 }
