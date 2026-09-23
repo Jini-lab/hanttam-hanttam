@@ -589,5 +589,95 @@ class PatternServiceTest {
         verifyNoInteractions(fileStorage);
     }
 
+    @Test
+    void resetThumbnail_success() throws Exception {
 
+        // given
+        Long userId = 1L;
+        Long patternId = 10L;
+
+        Path tempPdf =
+                Files.createTempFile(
+                        "pattern-test-",
+                        ".pdf"
+                );
+
+        Pattern pattern = new Pattern();
+        pattern.setPatternId(patternId);
+        pattern.setUserId(userId);
+        pattern.setPdfPath(tempPdf.toString());
+        pattern.setThumbnailPath("custom-thumbnail.png");
+
+        when(patternMapper.findById(
+                patternId,
+                userId
+        )).thenReturn(pattern);
+
+        when(pdfProcessor.createThumbnail(tempPdf))
+                .thenReturn("generated-thumbnail.png");
+
+
+        // when
+        PatternResponse response =
+                patternService.resetThumbnail(
+                        userId,
+                        patternId
+                );
+
+
+        // then
+        assertEquals(
+                "generated-thumbnail.png",
+                response.getThumbnailPath()
+        );
+
+        verify(pdfProcessor)
+                .createThumbnail(tempPdf);
+
+        verify(patternMapper)
+                .updateThumbnail(
+                        patternId,
+                        userId,
+                        "generated-thumbnail.png"
+                );
+
+        Files.deleteIfExists(tempPdf);
+    }
+
+    @Test
+    void resetThumbnail_pdfNotFound_throwsException() {
+
+        // given
+        Pattern pattern = new Pattern();
+        pattern.setPatternId(10L);
+        pattern.setUserId(1L);
+        pattern.setPdfPath(
+                "not-exists/pattern.pdf"
+        );
+
+        when(patternMapper.findById(
+                10L,
+                1L
+        )).thenReturn(pattern);
+
+
+        // when & then
+        assertThrows(
+                PatternPdfNotFoundException.class,
+                () -> patternService.resetThumbnail(
+                        1L,
+                        10L
+                )
+        );
+
+        verify(pdfProcessor, never())
+                .createThumbnail(any());
+
+        verify(patternMapper, never())
+                .updateThumbnail(
+                        anyLong(),
+                        anyLong(),
+                        anyString()
+                );
+    }
 }

@@ -174,4 +174,40 @@ public class PatternService {
 
         return new PatternResponse(pattern);
     }
+
+    public PatternResponse resetThumbnail(
+            Long userId,
+            Long patternId
+    ) {
+
+        Pattern pattern =
+                patternMapper.findById(
+                        patternId,
+                        userId
+                );
+
+        if (pattern == null) {
+            throw new PatternNotFoundException();
+        }
+
+        Path pdfPath =
+                Path.of(pattern.getPdfPath());
+
+        if (!Files.exists(pdfPath)) {
+            throw new PatternPdfNotFoundException();
+        }
+
+        String thumbnailPath =
+                pdfProcessor.createThumbnail(pdfPath);
+
+        patternMapper.updateThumbnail(
+                patternId,
+                userId,
+                thumbnailPath
+        );
+
+        pattern.setThumbnailPath(thumbnailPath);
+
+        return new PatternResponse(pattern);
+    }
 }

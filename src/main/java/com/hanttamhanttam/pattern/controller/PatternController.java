@@ -152,4 +152,22 @@ public class PatternController {
 
         return ResponseEntity.ok(response);
     }
+
+    @DeleteMapping("/{patternId}/thumbnail")
+    public ResponseEntity<PatternResponse> resetThumbnail(
+            Authentication authentication,
+            @PathVariable Long patternId
+    ) {
+
+        Long userId =
+                (Long) authentication.getPrincipal();
+
+        PatternResponse response =
+                patternService.resetThumbnail(
+                        userId,
+                        patternId
+                );
+
+        return ResponseEntity.ok(response);
+    }
 }

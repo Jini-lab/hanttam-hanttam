@@ -653,4 +653,61 @@ class PatternControllerTest {
 
         verifyNoInteractions(patternService);
     }
+
+    @Test
+    void resetThumbnail_success() throws Exception {
+
+        // given
+        Pattern pattern = createPattern();
+        pattern.setThumbnailPath(
+                "uploads/patterns/1/generated-thumbnail.png"
+        );
+
+        when(patternService.resetThumbnail(
+                1L,
+                10L
+        )).thenReturn(
+                new PatternResponse(pattern)
+        );
+
+        // when & then
+        mockMvc.perform(
+                        delete("/api/patterns/10/thumbnail")
+                                .with(
+                                        authentication(
+                                                new UsernamePasswordAuthenticationToken(
+                                                        1L,
+                                                        null,
+                                                        Collections.emptyList()
+                                                )
+                                        )
+                                )
+                )
+                .andExpect(status().isOk())
+                .andExpect(
+                        jsonPath("$.patternId")
+                                .value(10L)
+                )
+                .andExpect(
+                        jsonPath("$.thumbnailPath")
+                                .value(
+                                        "uploads/patterns/1/generated-thumbnail.png"
+                                )
+                );
+
+        verify(patternService)
+                .resetThumbnail(1L, 10L);
+    }
+
+    @Test
+    void resetThumbnail_withoutAuthentication_returns401()
+            throws Exception {
+
+        mockMvc.perform(
+                        delete("/api/patterns/10/thumbnail")
+                )
+                .andExpect(status().isUnauthorized());
+
+        verifyNoInteractions(patternService);
+    }
 }
