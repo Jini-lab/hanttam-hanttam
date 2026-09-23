@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.hanttamhanttam.pattern.mapper.PatternMapper">
+
+    <insert id="insert"
+            parameterType="com.hanttamhanttam.pattern.domain.Pattern"
+            useGeneratedKeys="true"
+            keyProperty="patternId"
+            keyColumn="pattern_id">
+
+        INSERT INTO patterns (
+        user_id,
+        pattern_name,
+        author,
+        pdf_path,
+        thumbnail_path,
+        total_pages,
+        created_at,
+        updated_at
+        )
+        VALUES (
+        #{userId},
+        #{patternName},
+        #{author},
+        #{pdfPath},
+        #{thumbnailPath},
+        #{totalPages},
+        NOW(),
+        NOW()
+        )
+
+    </insert>
+
+
+    <select id="findById"
+            resultType="com.hanttamhanttam.pattern.domain.Pattern">
+
+        SELECT
+        pattern_id,
+        user_id,
+        pattern_name,
+        author,
+        pdf_path,
+        thumbnail_path,
+        total_pages,
+        created_at,
+        updated_at,
+        deleted_at
+        FROM patterns
+        WHERE pattern_id = #{patternId}
+        AND user_id = #{userId}
+        AND deleted_at IS NULL
+
+    </select>
+
+
+    <select id="findAllByUserId"
+            resultType="com.hanttamhanttam.pattern.domain.Pattern">
+
+        SELECT
+        pattern_id,
+        user_id,
+        pattern_name,
+        author,
+        pdf_path,
+        thumbnail_path,
+        total_pages,
+        created_at,
+        updated_at,
+        deleted_at
+        FROM patterns
+        WHERE user_id = #{userId}
+        AND deleted_at IS NULL
+        ORDER BY created_at DESC
+
+    </select>
+
+    <update id="update"
+            parameterType="com.hanttamhanttam.pattern.domain.Pattern">
+
+        UPDATE patterns
+        SET pattern_name = #{patternName},
+        author = #{author},
+        updated_at = NOW()
+        WHERE pattern_id = #{patternId}
+        AND user_id = #{userId}
+        AND deleted_at IS NULL
+
+    </update>
+
+</mapper>

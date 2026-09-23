@@ -2,3 +2,6 @@ jwt:
   secret: "test-jwt-secret-key-must-be-at-least-32-bytes-long"
   access-token-expiration: 1800000
   refresh-token-expiration: 1209600000
+
+file:
+  upload-dir: build/test-uploads
