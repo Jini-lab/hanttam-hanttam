@@ -15,6 +15,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.MediaType;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.nio.file.Files;
@@ -462,4 +463,131 @@ class PatternServiceTest {
         verify(patternMapper, never())
                 .update(any(Pattern.class));
     }
+
+    @Test
+    void updateThumbnail_success() {
+
+        // given
+        Long userId = 1L;
+        Long patternId = 10L;
+
+        Pattern pattern = new Pattern();
+        pattern.setPatternId(patternId);
+        pattern.setUserId(userId);
+        pattern.setThumbnailPath("old.png");
+
+        MultipartFile thumbnail =
+                mock(MultipartFile.class);
+
+        when(patternMapper.findById(patternId, userId))
+                .thenReturn(pattern);
+
+        when(thumbnail.isEmpty())
+                .thenReturn(false);
+
+        when(thumbnail.getContentType())
+                .thenReturn(MediaType.IMAGE_PNG_VALUE);
+
+        when(fileStorage.savePatternThumbnail(
+                userId,
+                thumbnail
+        )).thenReturn(
+                "uploads/patterns/1/new.png"
+        );
+
+        // when
+        PatternResponse response =
+                patternService.updateThumbnail(
+                        userId,
+                        patternId,
+                        thumbnail
+                );
+
+        // then
+        assertEquals(
+                "uploads/patterns/1/new.png",
+                response.getThumbnailPath()
+        );
+
+        verify(patternMapper).updateThumbnail(
+                patternId,
+                userId,
+                "uploads/patterns/1/new.png"
+        );
+    }
+
+    @Test
+    void updateThumbnail_invalidFileType_throwsException() {
+
+        // given
+        Pattern pattern = new Pattern();
+        pattern.setPatternId(10L);
+        pattern.setUserId(1L);
+
+        MultipartFile thumbnail =
+                mock(MultipartFile.class);
+
+        when(patternMapper.findById(10L, 1L))
+                .thenReturn(pattern);
+
+        when(thumbnail.isEmpty())
+                .thenReturn(false);
+
+        when(thumbnail.getContentType())
+                .thenReturn(MediaType.APPLICATION_PDF_VALUE);
+
+        // when & then
+        IllegalArgumentException exception =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> patternService.updateThumbnail(
+                                1L,
+                                10L,
+                                thumbnail
+                        )
+                );
+
+        assertEquals(
+                "대표 이미지는 JPG 또는 PNG 파일만 가능합니다.",
+                exception.getMessage()
+        );
+
+        verify(fileStorage, never())
+                .savePatternThumbnail(anyLong(), any());
+
+        verify(patternMapper, never())
+                .updateThumbnail(
+                        anyLong(),
+                        anyLong(),
+                        anyString()
+                );
+    }
+
+    @Test
+    void updateThumbnail_emptyFile_throwsException() {
+
+        Pattern pattern = new Pattern();
+
+        MultipartFile thumbnail =
+                mock(MultipartFile.class);
+
+        when(patternMapper.findById(10L, 1L))
+                .thenReturn(pattern);
+
+        when(thumbnail.isEmpty())
+                .thenReturn(true);
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> patternService.updateThumbnail(
+                        1L,
+                        10L,
+                        thumbnail
+                )
+        );
+
+        verifyNoInteractions(fileStorage);
+    }
+
+
 }

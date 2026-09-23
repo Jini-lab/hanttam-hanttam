@@ -128,4 +128,28 @@ public class PatternController {
 
         return ResponseEntity.ok(response);
     }
+
+    @PatchMapping(
+            value = "/{patternId}/thumbnail",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    public ResponseEntity<PatternResponse> updateThumbnail(
+            Authentication authentication,
+            @PathVariable Long patternId,
+            @RequestPart("thumbnail")
+            MultipartFile thumbnail
+    ) {
+
+        Long userId =
+                (Long) authentication.getPrincipal();
+
+        PatternResponse response =
+                patternService.updateThumbnail(
+                        userId,
+                        patternId,
+                        thumbnail
+                );
+
+        return ResponseEntity.ok(response);
+    }
 }

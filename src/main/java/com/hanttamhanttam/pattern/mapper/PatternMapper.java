@@ -21,4 +21,10 @@ public interface PatternMapper {
     );
 
     void update(Pattern pattern);
+
+    void updateThumbnail(
+            @Param("patternId") Long patternId,
+            @Param("userId") Long userId,
+            @Param("thumbnailPath") String thumbnailPath
+    );
 }

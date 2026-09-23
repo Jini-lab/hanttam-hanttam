@@ -14,11 +14,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.multipart.MultipartFile;
 import tools.jackson.databind.ObjectMapper;
 
 import java.nio.file.Files;
@@ -567,5 +569,88 @@ class PatternControllerTest {
                         jsonPath("$.message")
                                 .value("도안을 찾을 수 없습니다.")
                 );
+    }
+
+    @Test
+    void updateThumbnail_success() throws Exception {
+
+        // given
+        MockMultipartFile thumbnail =
+                new MockMultipartFile(
+                        "thumbnail",
+                        "thumbnail.png",
+                        MediaType.IMAGE_PNG_VALUE,
+                        "fake-image-content".getBytes()
+                );
+
+        Pattern pattern = createPattern();
+        pattern.setThumbnailPath(
+                "uploads/patterns/1/new.png"
+        );
+
+        when(patternService.updateThumbnail(
+                eq(1L),
+                eq(10L),
+                any(MultipartFile.class)
+        )).thenReturn(
+                new PatternResponse(pattern)
+        );
+
+        // when & then
+        mockMvc.perform(
+                        multipart(
+                                HttpMethod.PATCH,
+                                "/api/patterns/10/thumbnail"
+                        )
+                                .file(thumbnail)
+                                .with(
+                                        authentication(
+                                                new UsernamePasswordAuthenticationToken(
+                                                        1L,
+                                                        null,
+                                                        Collections.emptyList()
+                                                )
+                                        )
+                                )
+                )
+                .andExpect(status().isOk())
+                .andExpect(
+                        jsonPath("$.patternId")
+                                .value(10L)
+                )
+                .andExpect(
+                        jsonPath("$.thumbnailPath")
+                                .value("uploads/patterns/1/new.png")
+                );
+
+        verify(patternService).updateThumbnail(
+                eq(1L),
+                eq(10L),
+                any(MultipartFile.class)
+        );
+    }
+
+    @Test
+    void updateThumbnail_withoutAuthentication_returns401()
+            throws Exception {
+
+        MockMultipartFile thumbnail =
+                new MockMultipartFile(
+                        "thumbnail",
+                        "thumbnail.png",
+                        MediaType.IMAGE_PNG_VALUE,
+                        "fake-image-content".getBytes()
+                );
+
+        mockMvc.perform(
+                        multipart(
+                                HttpMethod.PATCH,
+                                "/api/patterns/10/thumbnail"
+                        )
+                                .file(thumbnail)
+                )
+                .andExpect(status().isUnauthorized());
+
+        verifyNoInteractions(patternService);
     }
 }

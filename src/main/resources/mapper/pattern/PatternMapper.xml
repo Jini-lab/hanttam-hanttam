@@ -91,4 +91,15 @@
 
     </update>
 
+    <update id="updateThumbnail">
+
+        UPDATE patterns
+        SET thumbnail_path = #{thumbnailPath},
+        updated_at = NOW()
+        WHERE pattern_id = #{patternId}
+        AND user_id = #{userId}
+        AND deleted_at IS NULL
+
+    </update>
+
 </mapper>

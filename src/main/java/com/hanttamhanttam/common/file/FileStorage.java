@@ -46,5 +46,46 @@ public class FileStorage {
         }
     }
 
+    public String savePatternThumbnail(
+            Long userId,
+            MultipartFile file
+    ) {
+        try {
+            Path directory = uploadDir
+                    .resolve("patterns")
+                    .resolve(String.valueOf(userId));
+
+            Files.createDirectories(directory);
+
+            String originalFilename =
+                    file.getOriginalFilename();
+
+            String extension = "";
+
+            if (originalFilename != null
+                    && originalFilename.contains(".")) {
+
+                extension = originalFilename.substring(
+                        originalFilename.lastIndexOf(".")
+                );
+            }
+
+            String filename =
+                    UUID.randomUUID() + extension;
+
+            Path targetPath =
+                    directory.resolve(filename);
+
+            file.transferTo(targetPath);
+
+            return targetPath.toString();
+
+        } catch (IOException e) {
+            throw new IllegalStateException(
+                    "대표 이미지 저장에 실패했습니다.",
+                    e
+            );
+        }
+    }
 
 }

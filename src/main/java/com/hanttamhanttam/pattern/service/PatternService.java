@@ -10,6 +10,7 @@ import com.hanttamhanttam.pattern.exception.PatternNotFoundException;
 import com.hanttamhanttam.pattern.exception.PatternPdfNotFoundException;
 import com.hanttamhanttam.pattern.mapper.PatternMapper;
 import lombok.AllArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -123,6 +124,53 @@ public class PatternService {
         );
 
         patternMapper.update(pattern);
+
+        return new PatternResponse(pattern);
+    }
+
+    public PatternResponse updateThumbnail(
+            Long userId,
+            Long patternId,
+            MultipartFile thumbnail
+    ) {
+
+        Pattern pattern =
+                patternMapper.findById(patternId, userId);
+
+        if (pattern == null) {
+            throw new PatternNotFoundException();
+        }
+
+        if (thumbnail.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "대표 이미지 파일이 비어있습니다."
+            );
+        }
+
+        String contentType =
+                thumbnail.getContentType();
+
+        if (!MediaType.IMAGE_JPEG_VALUE.equals(contentType)
+                && !MediaType.IMAGE_PNG_VALUE.equals(contentType)) {
+
+            throw new IllegalArgumentException(
+                    "대표 이미지는 JPG 또는 PNG 파일만 가능합니다."
+            );
+        }
+
+        String thumbnailPath =
+                fileStorage.savePatternThumbnail(
+                        userId,
+                        thumbnail
+                );
+
+        patternMapper.updateThumbnail(
+                patternId,
+                userId,
+                thumbnailPath
+        );
+
+        pattern.setThumbnailPath(thumbnailPath);
 
         return new PatternResponse(pattern);
     }
