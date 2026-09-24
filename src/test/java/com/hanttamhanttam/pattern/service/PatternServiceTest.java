@@ -680,4 +680,67 @@ class PatternServiceTest {
                         anyString()
                 );
     }
+
+    @Test
+    void delete_success() {
+
+        // given
+        Long userId = 1L;
+        Long patternId = 10L;
+
+        Pattern pattern = new Pattern();
+        pattern.setPatternId(patternId);
+        pattern.setUserId(userId);
+
+        when(patternMapper.findById(
+                patternId,
+                userId
+        )).thenReturn(pattern);
+
+        when(patternMapper.softDelete(
+                patternId,
+                userId
+        )).thenReturn(1);
+
+
+        // when
+        patternService.delete(
+                userId,
+                patternId
+        );
+
+
+        // then
+        verify(patternMapper)
+                .findById(patternId, userId);
+
+        verify(patternMapper)
+                .softDelete(patternId, userId);
+    }
+
+    @Test
+    void delete_notFound_throwsException() {
+
+        // given
+        when(patternMapper.findById(
+                999L,
+                1L
+        )).thenReturn(null);
+
+
+        // when & then
+        assertThrows(
+                PatternNotFoundException.class,
+                () -> patternService.delete(
+                        1L,
+                        999L
+                )
+        );
+
+        verify(patternMapper, never())
+                .softDelete(
+                        anyLong(),
+                        anyLong()
+                );
+    }
 }

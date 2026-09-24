@@ -27,4 +27,9 @@ public interface PatternMapper {
             @Param("userId") Long userId,
             @Param("thumbnailPath") String thumbnailPath
     );
+
+    int softDelete(
+            @Param("patternId") Long patternId,
+            @Param("userId") Long userId
+    );
 }

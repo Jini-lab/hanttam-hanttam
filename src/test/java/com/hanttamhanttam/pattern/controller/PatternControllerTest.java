@@ -710,4 +710,63 @@ class PatternControllerTest {
 
         verifyNoInteractions(patternService);
     }
+
+    @Test
+    void delete_success() throws Exception {
+
+        mockMvc.perform(
+                        delete("/api/patterns/10")
+                                .with(
+                                        authentication(
+                                                new UsernamePasswordAuthenticationToken(
+                                                        1L,
+                                                        null,
+                                                        Collections.emptyList()
+                                                )
+                                        )
+                                )
+                )
+                .andExpect(status().isNoContent());
+
+        verify(patternService)
+                .delete(1L, 10L);
+    }
+
+    @Test
+    void delete_notFound_returns404() throws Exception {
+
+        doThrow(new PatternNotFoundException())
+                .when(patternService)
+                .delete(1L, 999L);
+
+        mockMvc.perform(
+                        delete("/api/patterns/999")
+                                .with(
+                                        authentication(
+                                                new UsernamePasswordAuthenticationToken(
+                                                        1L,
+                                                        null,
+                                                        Collections.emptyList()
+                                                )
+                                        )
+                                )
+                )
+                .andExpect(status().isNotFound())
+                .andExpect(
+                        jsonPath("$.message")
+                                .value("도안을 찾을 수 없습니다.")
+                );
+    }
+
+    @Test
+    void delete_withoutAuthentication_returns401()
+            throws Exception {
+
+        mockMvc.perform(
+                        delete("/api/patterns/10")
+                )
+                .andExpect(status().isUnauthorized());
+
+        verifyNoInteractions(patternService);
+    }
 }

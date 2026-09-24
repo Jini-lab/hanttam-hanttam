@@ -210,4 +210,30 @@ public class PatternService {
 
         return new PatternResponse(pattern);
     }
+
+    public void delete(
+            Long userId,
+            Long patternId
+    ) {
+
+        Pattern pattern =
+                patternMapper.findById(
+                        patternId,
+                        userId
+                );
+
+        if (pattern == null) {
+            throw new PatternNotFoundException();
+        }
+
+        int deletedCount =
+                patternMapper.softDelete(
+                        patternId,
+                        userId
+                );
+
+        if (deletedCount == 0) {
+            throw new PatternNotFoundException();
+        }
+    }
 }

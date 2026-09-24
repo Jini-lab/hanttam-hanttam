@@ -170,4 +170,21 @@ public class PatternController {
 
         return ResponseEntity.ok(response);
     }
+
+    @DeleteMapping("/{patternId}")
+    public ResponseEntity<Void> delete(
+            Authentication authentication,
+            @PathVariable Long patternId
+    ) {
+
+        Long userId =
+                (Long) authentication.getPrincipal();
+
+        patternService.delete(
+                userId,
+                patternId
+        );
+
+        return ResponseEntity.noContent().build();
+    }
 }

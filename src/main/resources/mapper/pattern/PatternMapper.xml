@@ -102,4 +102,13 @@
 
     </update>
 
+    <update id="softDelete">
+        UPDATE patterns
+        SET deleted_at = NOW(),
+        updated_at = NOW()
+        WHERE pattern_id = #{patternId}
+        AND user_id = #{userId}
+        AND deleted_at IS NULL
+    </update>
+
 </mapper>
