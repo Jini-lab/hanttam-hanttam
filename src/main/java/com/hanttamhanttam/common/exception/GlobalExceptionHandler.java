@@ -4,6 +4,7 @@ import com.hanttamhanttam.auth.exception.InvalidCredentialsException;
 import com.hanttamhanttam.auth.exception.InvalidRefreshTokenException;
 import com.hanttamhanttam.pattern.exception.PatternNotFoundException;
 import com.hanttamhanttam.pattern.exception.PatternPdfNotFoundException;
+import com.hanttamhanttam.project.exception.ProjectNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -43,6 +44,16 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handlePatternPdfNotFound(
             PatternPdfNotFoundException e
     ) {
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse(e.getMessage()));
+    }
+
+    @ExceptionHandler(ProjectNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleProjectNotFound(
+            ProjectNotFoundException e
+    ) {
+
         return ResponseEntity
                 .status(HttpStatus.NOT_FOUND)
                 .body(new ErrorResponse(e.getMessage()));

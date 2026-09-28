@@ -1,8 +1,10 @@
 package com.hanttamhanttam.project.mapper;
 
 import com.hanttamhanttam.project.domain.Project;
+import com.hanttamhanttam.project.dto.ProjectDetailResponse;
 import com.hanttamhanttam.project.dto.ProjectListResponse;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
@@ -13,5 +15,10 @@ public interface ProjectMapper {
 
     List<ProjectListResponse> findAllByUserId(
             Long userId
+    );
+
+    ProjectDetailResponse findById(
+            @Param("projectId") Long projectId,
+            @Param("userId") Long userId
     );
 }

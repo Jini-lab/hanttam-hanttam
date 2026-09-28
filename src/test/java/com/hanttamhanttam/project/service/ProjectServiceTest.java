@@ -6,8 +6,10 @@ import com.hanttamhanttam.pattern.mapper.PatternMapper;
 import com.hanttamhanttam.project.domain.Project;
 import com.hanttamhanttam.project.domain.ProjectStatus;
 import com.hanttamhanttam.project.dto.ProjectCreateRequest;
+import com.hanttamhanttam.project.dto.ProjectDetailResponse;
 import com.hanttamhanttam.project.dto.ProjectListResponse;
 import com.hanttamhanttam.project.dto.ProjectResponse;
+import com.hanttamhanttam.project.exception.ProjectNotFoundException;
 import com.hanttamhanttam.project.mapper.ProjectMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -240,5 +242,82 @@ public class ProjectServiceTest {
 
         verify(projectMapper)
                 .findAllByUserId(userId);
+    }
+
+    @Test
+    void findById_success() {
+
+        // given
+        Long userId = 1L;
+        Long projectId = 100L;
+
+        ProjectDetailResponse project =
+                new ProjectDetailResponse();
+
+        project.setProjectId(projectId);
+        project.setPatternId(10L);
+        project.setPatternName("Cable Sweater");
+        project.setThumbnailPath("thumbnail.png");
+        project.setSize("S");
+        project.setStatus(ProjectStatus.PREPARING);
+        project.setCurrentPage(1);
+
+        when(projectMapper.findById(
+                projectId,
+                userId
+        )).thenReturn(project);
+
+
+        // when
+        ProjectDetailResponse result =
+                projectService.findById(
+                        userId,
+                        projectId
+                );
+
+
+        // then
+        assertEquals(
+                100L,
+                result.getProjectId()
+        );
+
+        assertEquals(
+                "Cable Sweater",
+                result.getPatternName()
+        );
+
+        assertEquals(
+                "S",
+                result.getSize()
+        );
+
+        assertEquals(
+                ProjectStatus.PREPARING,
+                result.getStatus()
+        );
+
+        verify(projectMapper)
+                .findById(projectId, userId);
+    }
+
+    @Test
+    void findById_notFound_throwsException() {
+
+        // given
+        when(projectMapper.findById(
+                999L,
+                1L
+        )).thenReturn(null);
+
+
+        // when & then
+        assertThrows(
+                ProjectNotFoundException.class,
+                () -> projectService.findById(
+                        1L,
+                        999L
+                )
+        );
     }
 }

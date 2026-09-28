@@ -7,8 +7,10 @@ import com.hanttamhanttam.common.security.JwtProvider;
 import com.hanttamhanttam.project.domain.Project;
 import com.hanttamhanttam.project.domain.ProjectStatus;
 import com.hanttamhanttam.project.dto.ProjectCreateRequest;
+import com.hanttamhanttam.project.dto.ProjectDetailResponse;
 import com.hanttamhanttam.project.dto.ProjectListResponse;
 import com.hanttamhanttam.project.dto.ProjectResponse;
+import com.hanttamhanttam.project.exception.ProjectNotFoundException;
 import com.hanttamhanttam.project.service.ProjectService;
 import com.hanttamhanttam.pattern.exception.PatternNotFoundException;
 import org.junit.jupiter.api.Test;
@@ -260,6 +262,109 @@ public class ProjectControllerTest {
 
         mockMvc.perform(
                         get("/api/projects")
+                )
+                .andExpect(status().isUnauthorized());
+
+        verifyNoInteractions(projectService);
+    }
+
+    @Test
+    void findById_success() throws Exception {
+
+        // given
+        ProjectDetailResponse project =
+                new ProjectDetailResponse();
+
+        project.setProjectId(100L);
+        project.setPatternId(10L);
+        project.setPatternName("Cable Sweater");
+        project.setThumbnailPath("thumbnail.png");
+        project.setSize("S");
+        project.setStatus(ProjectStatus.PREPARING);
+        project.setCurrentPage(1);
+
+        when(projectService.findById(
+                1L,
+                100L
+        )).thenReturn(project);
+
+
+        // when & then
+        mockMvc.perform(
+                        get("/api/projects/100")
+                                .with(
+                                        authentication(
+                                                new UsernamePasswordAuthenticationToken(
+                                                        1L,
+                                                        null,
+                                                        Collections.emptyList()
+                                                )
+                                        )
+                                )
+                )
+                .andExpect(status().isOk())
+                .andExpect(
+                        jsonPath("$.projectId")
+                                .value(100L)
+                )
+                .andExpect(
+                        jsonPath("$.patternId")
+                                .value(10L)
+                )
+                .andExpect(
+                        jsonPath("$.patternName")
+                                .value("Cable Sweater")
+                )
+                .andExpect(
+                        jsonPath("$.size")
+                                .value("S")
+                )
+                .andExpect(
+                        jsonPath("$.status")
+                                .value("PREPARING")
+                )
+                .andExpect(
+                        jsonPath("$.currentPage")
+                                .value(1)
+                );
+    }
+
+    @Test
+    void findById_notFound_returns404()
+            throws Exception {
+
+        when(projectService.findById(
+                1L,
+                999L
+        )).thenThrow(
+                new ProjectNotFoundException()
+        );
+
+        mockMvc.perform(
+                        get("/api/projects/999")
+                                .with(
+                                        authentication(
+                                                new UsernamePasswordAuthenticationToken(
+                                                        1L,
+                                                        null,
+                                                        Collections.emptyList()
+                                                )
+                                        )
+                                )
+                )
+                .andExpect(status().isNotFound())
+                .andExpect(
+                        jsonPath("$.message")
+                                .value("프로젝트를 찾을 수 없습니다.")
+                );
+    }
+
+    @Test
+    void findById_withoutAuthentication_returns401()
+            throws Exception {
+
+        mockMvc.perform(
+                        get("/api/projects/100")
                 )
                 .andExpect(status().isUnauthorized());
 

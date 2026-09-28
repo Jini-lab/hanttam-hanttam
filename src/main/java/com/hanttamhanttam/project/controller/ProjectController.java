@@ -1,6 +1,7 @@
 package com.hanttamhanttam.project.controller;
 
 import com.hanttamhanttam.project.dto.ProjectCreateRequest;
+import com.hanttamhanttam.project.dto.ProjectDetailResponse;
 import com.hanttamhanttam.project.dto.ProjectListResponse;
 import com.hanttamhanttam.project.dto.ProjectResponse;
 import com.hanttamhanttam.project.service.ProjectService;
@@ -43,6 +44,24 @@ public class ProjectController {
 
         List<ProjectListResponse> response =
                 projectService.findAll(userId);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{projectId}")
+    public ResponseEntity<ProjectDetailResponse> findById(
+            Authentication authentication,
+            @PathVariable Long projectId
+    ) {
+
+        Long userId =
+                (Long) authentication.getPrincipal();
+
+        ProjectDetailResponse response =
+                projectService.findById(
+                        userId,
+                        projectId
+                );
 
         return ResponseEntity.ok(response);
     }

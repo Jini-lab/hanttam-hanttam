@@ -6,8 +6,10 @@ import com.hanttamhanttam.pattern.mapper.PatternMapper;
 import com.hanttamhanttam.project.domain.Project;
 import com.hanttamhanttam.project.domain.ProjectStatus;
 import com.hanttamhanttam.project.dto.ProjectCreateRequest;
+import com.hanttamhanttam.project.dto.ProjectDetailResponse;
 import com.hanttamhanttam.project.dto.ProjectListResponse;
 import com.hanttamhanttam.project.dto.ProjectResponse;
+import com.hanttamhanttam.project.exception.ProjectNotFoundException;
 import com.hanttamhanttam.project.mapper.ProjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -81,5 +83,24 @@ public class ProjectService {
             Long userId
     ) {
         return projectMapper.findAllByUserId(userId);
+    }
+
+    @Transactional(readOnly = true)
+    public ProjectDetailResponse findById(
+            Long userId,
+            Long projectId
+    ) {
+
+        ProjectDetailResponse project =
+                projectMapper.findById(
+                        projectId,
+                        userId
+                );
+
+        if (project == null) {
+            throw new ProjectNotFoundException();
+        }
+
+        return project;
     }
 }
