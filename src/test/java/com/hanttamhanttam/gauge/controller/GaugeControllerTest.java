@@ -7,6 +7,7 @@ import com.hanttamhanttam.common.security.JwtProvider;
 import com.hanttamhanttam.gauge.domain.Gauge;
 import com.hanttamhanttam.gauge.dto.GaugeCreateRequest;
 import com.hanttamhanttam.gauge.dto.GaugeResponse;
+import com.hanttamhanttam.gauge.dto.GaugeUpdateRequest;
 import com.hanttamhanttam.gauge.exception.GaugeNotFoundException;
 import com.hanttamhanttam.gauge.service.GaugeService;
 import com.hanttamhanttam.project.exception.CompletedProjectModificationException;
@@ -528,6 +529,196 @@ public class GaugeControllerTest {
 
         mockMvc.perform(
                         patch("/api/projects/100/gauges/2/select")
+                )
+                .andExpect(status().isUnauthorized());
+
+        verifyNoInteractions(gaugeService);
+    }
+
+    @Test
+    void update_success() throws Exception {
+
+        // given
+        Gauge gauge = new Gauge();
+        gauge.setGaugeId(2L);
+        gauge.setProjectId(100L);
+        gauge.setYarnName("Merino Wool");
+        gauge.setNeedleSize(new BigDecimal("5.50"));
+        gauge.setStitchCount(20);
+        gauge.setRowCount(28);
+        gauge.setMeasuredWidthCm(new BigDecimal("10.00"));
+        gauge.setMeasuredHeightCm(new BigDecimal("10.00"));
+        gauge.setIsSelected(true);
+
+        when(gaugeService.update(
+                eq(1L),
+                eq(100L),
+                eq(2L),
+                any(GaugeUpdateRequest.class)
+        )).thenReturn(
+                new GaugeResponse(gauge)
+        );
+
+        String body = """
+            {
+              "needleSize": 5.50,
+              "stitchCount": 20
+            }
+            """;
+
+
+        // when & then
+        mockMvc.perform(
+                        patch("/api/projects/100/gauges/2")
+                                .with(
+                                        authentication(
+                                                new UsernamePasswordAuthenticationToken(
+                                                        1L,
+                                                        null,
+                                                        Collections.emptyList()
+                                                )
+                                        )
+                                )
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(body)
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.gaugeId").value(2L))
+                .andExpect(jsonPath("$.needleSize").value(5.50))
+                .andExpect(jsonPath("$.stitchCount").value(20))
+                .andExpect(jsonPath("$.isSelected").value(true));
+
+        verify(gaugeService).update(
+                eq(1L),
+                eq(100L),
+                eq(2L),
+                any(GaugeUpdateRequest.class)
+        );
+    }
+
+    @Test
+    void update_invalidRequest_returns400()
+            throws Exception {
+
+        String body = """
+            {
+              "needleSize": 0
+            }
+            """;
+
+        mockMvc.perform(
+                        patch("/api/projects/100/gauges/2")
+                                .with(
+                                        authentication(
+                                                new UsernamePasswordAuthenticationToken(
+                                                        1L,
+                                                        null,
+                                                        Collections.emptyList()
+                                                )
+                                        )
+                                )
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(body)
+                )
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(gaugeService);
+    }
+
+    @Test
+    void update_gaugeNotFound_returns404()
+            throws Exception {
+
+        when(gaugeService.update(
+                eq(1L),
+                eq(100L),
+                eq(999L),
+                any(GaugeUpdateRequest.class)
+        )).thenThrow(
+                new GaugeNotFoundException()
+        );
+
+        String body = """
+            {
+              "needleSize": 5.50
+            }
+            """;
+
+        mockMvc.perform(
+                        patch("/api/projects/100/gauges/999")
+                                .with(
+                                        authentication(
+                                                new UsernamePasswordAuthenticationToken(
+                                                        1L,
+                                                        null,
+                                                        Collections.emptyList()
+                                                )
+                                        )
+                                )
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(body)
+                )
+                .andExpect(status().isNotFound())
+                .andExpect(
+                        jsonPath("$.message")
+                                .value("게이지를 찾을 수 없습니다.")
+                );
+    }
+
+    @Test
+    void update_completedProject_returns409()
+            throws Exception {
+
+        when(gaugeService.update(
+                eq(1L),
+                eq(100L),
+                eq(2L),
+                any(GaugeUpdateRequest.class)
+        )).thenThrow(
+                new CompletedProjectModificationException()
+        );
+
+        String body = """
+            {
+              "needleSize": 5.50
+            }
+            """;
+
+        mockMvc.perform(
+                        patch("/api/projects/100/gauges/2")
+                                .with(
+                                        authentication(
+                                                new UsernamePasswordAuthenticationToken(
+                                                        1L,
+                                                        null,
+                                                        Collections.emptyList()
+                                                )
+                                        )
+                                )
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(body)
+                )
+                .andExpect(status().isConflict())
+                .andExpect(
+                        jsonPath("$.message")
+                                .value("완성된 프로젝트는 수정할 수 없습니다.")
+                );
+    }
+
+    @Test
+    void update_withoutAuthentication_returns401()
+            throws Exception {
+
+        String body = """
+            {
+              "needleSize": 5.50
+            }
+            """;
+
+        mockMvc.perform(
+                        patch("/api/projects/100/gauges/2")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(body)
                 )
                 .andExpect(status().isUnauthorized());
 

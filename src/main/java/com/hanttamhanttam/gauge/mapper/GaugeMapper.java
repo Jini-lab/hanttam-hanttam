@@ -1,6 +1,7 @@
 package com.hanttamhanttam.gauge.mapper;
 
 import com.hanttamhanttam.gauge.domain.Gauge;
+import com.hanttamhanttam.gauge.dto.GaugeUpdateRequest;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -25,5 +26,11 @@ public interface GaugeMapper {
     int select(
             @Param("gaugeId") Long gaugeId,
             @Param("projectId") Long projectId
+    );
+
+    int update(
+            @Param("gaugeId") Long gaugeId,
+            @Param("projectId") Long projectId,
+            @Param("request") GaugeUpdateRequest request
     );
 }

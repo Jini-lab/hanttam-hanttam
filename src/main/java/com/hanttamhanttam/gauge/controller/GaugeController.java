@@ -2,6 +2,7 @@ package com.hanttamhanttam.gauge.controller;
 
 import com.hanttamhanttam.gauge.dto.GaugeCreateRequest;
 import com.hanttamhanttam.gauge.dto.GaugeResponse;
+import com.hanttamhanttam.gauge.dto.GaugeUpdateRequest;
 import com.hanttamhanttam.gauge.service.GaugeService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -74,6 +75,28 @@ public class GaugeController {
                         userId,
                         projectId,
                         gaugeId
+                );
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping("/{gaugeId}")
+    public ResponseEntity<GaugeResponse> update(
+            Authentication authentication,
+            @PathVariable Long projectId,
+            @PathVariable Long gaugeId,
+            @Valid @RequestBody GaugeUpdateRequest request
+    ) {
+
+        Long userId =
+                (Long) authentication.getPrincipal();
+
+        GaugeResponse response =
+                gaugeService.update(
+                        userId,
+                        projectId,
+                        gaugeId,
+                        request
                 );
 
         return ResponseEntity.ok(response);

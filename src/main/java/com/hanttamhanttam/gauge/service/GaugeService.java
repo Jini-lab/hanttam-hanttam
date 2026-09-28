@@ -3,6 +3,7 @@ package com.hanttamhanttam.gauge.service;
 import com.hanttamhanttam.gauge.domain.Gauge;
 import com.hanttamhanttam.gauge.dto.GaugeCreateRequest;
 import com.hanttamhanttam.gauge.dto.GaugeResponse;
+import com.hanttamhanttam.gauge.dto.GaugeUpdateRequest;
 import com.hanttamhanttam.gauge.exception.GaugeNotFoundException;
 import com.hanttamhanttam.gauge.mapper.GaugeMapper;
 import com.hanttamhanttam.project.domain.ProjectStatus;
@@ -146,5 +147,61 @@ public class GaugeService {
                 );
 
         return new GaugeResponse(selectedGauge);
+    }
+
+    @Transactional
+    public GaugeResponse update(
+            Long userId,
+            Long projectId,
+            Long gaugeId,
+            GaugeUpdateRequest request
+    ) {
+
+        // Project 존재 + 소유권 확인
+        ProjectDetailResponse project =
+                projectMapper.findById(
+                        projectId,
+                        userId
+                );
+
+        if (project == null) {
+            throw new ProjectNotFoundException();
+        }
+
+        // 완성된 작품은 Gauge 수정 불가
+        if (project.getStatus() == ProjectStatus.COMPLETED) {
+            throw new CompletedProjectModificationException();
+        }
+
+        // 해당 Project의 Gauge인지 확인
+        Gauge gauge =
+                gaugeMapper.findById(
+                        gaugeId,
+                        projectId
+                );
+
+        if (gauge == null) {
+            throw new GaugeNotFoundException();
+        }
+
+        gaugeMapper.update(
+                gaugeId,
+                projectId,
+                request
+        );
+
+        // Gauge 수정도 Project 활동으로 간주
+        projectMapper.touchUpdatedAt(
+                projectId,
+                userId
+        );
+
+        Gauge updatedGauge =
+                gaugeMapper.findById(
+                        gaugeId,
+                        projectId
+                );
+
+        return new GaugeResponse(updatedGauge);
     }
 }

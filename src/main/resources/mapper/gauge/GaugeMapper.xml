@@ -110,4 +110,40 @@
 
     </update>
 
+    <update id="update">
+
+        UPDATE gauges
+
+        SET
+        yarn_name =
+        COALESCE(#{request.yarnName}, yarn_name),
+
+        needle_size =
+        COALESCE(#{request.needleSize}, needle_size),
+
+        stitch_count =
+        COALESCE(#{request.stitchCount}, stitch_count),
+
+        row_count =
+        COALESCE(#{request.rowCount}, row_count),
+
+        measured_width_cm =
+        COALESCE(
+        #{request.measuredWidthCm},
+        measured_width_cm
+        ),
+
+        measured_height_cm =
+        COALESCE(
+        #{request.measuredHeightCm},
+        measured_height_cm
+        ),
+
+        updated_at = NOW()
+
+        WHERE gauge_id = #{gaugeId}
+        AND project_id = #{projectId}
+
+    </update>
+
 </mapper>

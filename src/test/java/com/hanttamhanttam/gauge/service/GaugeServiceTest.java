@@ -3,6 +3,7 @@ package com.hanttamhanttam.gauge.service;
 import com.hanttamhanttam.gauge.domain.Gauge;
 import com.hanttamhanttam.gauge.dto.GaugeCreateRequest;
 import com.hanttamhanttam.gauge.dto.GaugeResponse;
+import com.hanttamhanttam.gauge.dto.GaugeUpdateRequest;
 import com.hanttamhanttam.gauge.exception.GaugeNotFoundException;
 import com.hanttamhanttam.gauge.mapper.GaugeMapper;
 import com.hanttamhanttam.project.domain.ProjectStatus;
@@ -432,6 +433,179 @@ public class GaugeServiceTest {
                 )
         );
 
+        verifyNoInteractions(gaugeMapper);
+    }
+
+    @Test
+    void update_success() {
+
+        // given
+        Long userId = 1L;
+        Long projectId = 100L;
+        Long gaugeId = 2L;
+
+        ProjectDetailResponse project =
+                new ProjectDetailResponse();
+
+        project.setProjectId(projectId);
+        project.setStatus(ProjectStatus.IN_PROGRESS);
+
+        when(projectMapper.findById(
+                projectId,
+                userId
+        )).thenReturn(project);
+
+
+        Gauge before = new Gauge();
+        before.setGaugeId(gaugeId);
+        before.setProjectId(projectId);
+        before.setNeedleSize(new BigDecimal("4.50"));
+        before.setIsSelected(true);
+
+        Gauge after = new Gauge();
+        after.setGaugeId(gaugeId);
+        after.setProjectId(projectId);
+        after.setNeedleSize(new BigDecimal("5.00"));
+        after.setIsSelected(true);
+
+        when(gaugeMapper.findById(
+                gaugeId,
+                projectId
+        ))
+                .thenReturn(before)
+                .thenReturn(after);
+
+
+        GaugeUpdateRequest request =
+                new GaugeUpdateRequest();
+
+        request.setNeedleSize(
+                new BigDecimal("5.00")
+        );
+
+
+        // when
+        GaugeResponse result =
+                gaugeService.update(
+                        userId,
+                        projectId,
+                        gaugeId,
+                        request
+                );
+
+
+        // then
+        assertEquals(
+                new BigDecimal("5.00"),
+                result.getNeedleSize()
+        );
+
+        // 수정해도 최종 선택 상태는 유지
+        assertTrue(result.getIsSelected());
+
+        verify(gaugeMapper).update(
+                gaugeId,
+                projectId,
+                request
+        );
+
+        verify(projectMapper).touchUpdatedAt(
+                projectId,
+                userId
+        );
+
+        verify(gaugeMapper, times(2))
+                .findById(
+                        gaugeId,
+                        projectId
+                );
+    }
+
+    @Test
+    void update_gaugeNotFound_throwsException() {
+
+        Long userId = 1L;
+        Long projectId = 100L;
+        Long gaugeId = 999L;
+
+        ProjectDetailResponse project =
+                new ProjectDetailResponse();
+
+        project.setProjectId(projectId);
+        project.setStatus(ProjectStatus.IN_PROGRESS);
+
+        when(projectMapper.findById(
+                projectId,
+                userId
+        )).thenReturn(project);
+
+        when(gaugeMapper.findById(
+                gaugeId,
+                projectId
+        )).thenReturn(null);
+
+        GaugeUpdateRequest request =
+                new GaugeUpdateRequest();
+
+        request.setNeedleSize(
+                new BigDecimal("5.00")
+        );
+
+        assertThrows(
+                GaugeNotFoundException.class,
+                () -> gaugeService.update(
+                        userId,
+                        projectId,
+                        gaugeId,
+                        request
+                )
+        );
+
+        verify(gaugeMapper, never()).update(
+                anyLong(),
+                anyLong(),
+                any(GaugeUpdateRequest.class)
+        );
+
+        verify(projectMapper, never())
+                .touchUpdatedAt(
+                        anyLong(),
+                        anyLong()
+                );
+    }
+
+    @Test
+    void update_completedProject_throwsException() {
+
+        ProjectDetailResponse project =
+                new ProjectDetailResponse();
+
+        project.setProjectId(100L);
+        project.setStatus(ProjectStatus.COMPLETED);
+
+        when(projectMapper.findById(
+                100L,
+                1L
+        )).thenReturn(project);
+
+        GaugeUpdateRequest request =
+                new GaugeUpdateRequest();
+
+        request.setNeedleSize(
+                new BigDecimal("5.00")
+        );
+
+        assertThrows(
+                CompletedProjectModificationException.class,
+                () -> gaugeService.update(
+                        1L,
+                        100L,
+                        2L,
+                        request
+                )
+        );
+
+        // Project 상태에서 이미 차단되어야 함
         verifyNoInteractions(gaugeMapper);
     }
 }
