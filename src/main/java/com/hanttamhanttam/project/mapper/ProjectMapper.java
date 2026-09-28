@@ -33,4 +33,9 @@ public interface ProjectMapper {
             @Param("projectId") Long projectId,
             @Param("userId") Long userId
     );
+
+    int touchUpdatedAt(
+            @Param("projectId") Long projectId,
+            @Param("userId") Long userId
+    );
 }

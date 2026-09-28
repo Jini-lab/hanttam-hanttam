@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.hanttamhanttam.gauge.mapper.GaugeMapper">
+
+    <insert id="insert"
+            parameterType="com.hanttamhanttam.gauge.domain.Gauge"
+            useGeneratedKeys="true"
+            keyProperty="gaugeId">
+
+        INSERT INTO gauges (
+        project_id,
+        yarn_name,
+        needle_size,
+        stitch_count,
+        row_count,
+        measured_width_cm,
+        measured_height_cm,
+        is_selected,
+        created_at,
+        updated_at
+        )
+        VALUES (
+        #{projectId},
+        #{yarnName},
+        #{needleSize},
+        #{stitchCount},
+        #{rowCount},
+        #{measuredWidthCm},
+        #{measuredHeightCm},
+        #{isSelected},
+        NOW(),
+        NOW()
+        )
+
+    </insert>
+
+</mapper>
