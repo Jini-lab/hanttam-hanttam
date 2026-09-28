@@ -7,6 +7,7 @@ import com.hanttamhanttam.common.security.JwtProvider;
 import com.hanttamhanttam.gauge.domain.Gauge;
 import com.hanttamhanttam.gauge.dto.GaugeCreateRequest;
 import com.hanttamhanttam.gauge.dto.GaugeResponse;
+import com.hanttamhanttam.gauge.exception.GaugeNotFoundException;
 import com.hanttamhanttam.gauge.service.GaugeService;
 import com.hanttamhanttam.project.exception.CompletedProjectModificationException;
 import com.hanttamhanttam.project.exception.ProjectNotFoundException;
@@ -31,6 +32,7 @@ import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(GaugeController.class)
@@ -373,4 +375,163 @@ public class GaugeControllerTest {
 
         verifyNoInteractions(gaugeService);
     }
+
+    @Test
+    void select_success() throws Exception {
+
+        // given
+        Gauge gauge = new Gauge();
+        gauge.setGaugeId(2L);
+        gauge.setProjectId(100L);
+        gauge.setYarnName("Merino Wool");
+        gauge.setNeedleSize(new BigDecimal("5.00"));
+        gauge.setStitchCount(20);
+        gauge.setRowCount(28);
+        gauge.setMeasuredWidthCm(new BigDecimal("10.00"));
+        gauge.setMeasuredHeightCm(new BigDecimal("10.00"));
+        gauge.setIsSelected(true);
+
+        when(gaugeService.select(
+                1L,
+                100L,
+                2L
+        )).thenReturn(
+                new GaugeResponse(gauge)
+        );
+
+
+        // when & then
+        mockMvc.perform(
+                        patch("/api/projects/100/gauges/2/select")
+                                .with(
+                                        authentication(
+                                                new UsernamePasswordAuthenticationToken(
+                                                        1L,
+                                                        null,
+                                                        Collections.emptyList()
+                                                )
+                                        )
+                                )
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.gaugeId").value(2L))
+                .andExpect(jsonPath("$.projectId").value(100L))
+                .andExpect(jsonPath("$.needleSize").value(5.00))
+                .andExpect(jsonPath("$.isSelected").value(true));
+
+        verify(gaugeService)
+                .select(
+                        1L,
+                        100L,
+                        2L
+                );
+    }
+
+    @Test
+    void select_gaugeNotFound_returns404()
+            throws Exception {
+
+        when(gaugeService.select(
+                1L,
+                100L,
+                999L
+        )).thenThrow(
+                new GaugeNotFoundException()
+        );
+
+        mockMvc.perform(
+                        patch("/api/projects/100/gauges/999/select")
+                                .with(
+                                        authentication(
+                                                new UsernamePasswordAuthenticationToken(
+                                                        1L,
+                                                        null,
+                                                        Collections.emptyList()
+                                                )
+                                        )
+                                )
+                )
+                .andExpect(status().isNotFound())
+                .andExpect(
+                        jsonPath("$.message")
+                                .value("게이지를 찾을 수 없습니다.")
+                );
+    }
+
+    @Test
+    void select_projectNotFound_returns404()
+            throws Exception {
+
+        when(gaugeService.select(
+                1L,
+                999L,
+                2L
+        )).thenThrow(
+                new ProjectNotFoundException()
+        );
+
+        mockMvc.perform(
+                        patch("/api/projects/999/gauges/2/select")
+                                .with(
+                                        authentication(
+                                                new UsernamePasswordAuthenticationToken(
+                                                        1L,
+                                                        null,
+                                                        Collections.emptyList()
+                                                )
+                                        )
+                                )
+                )
+                .andExpect(status().isNotFound())
+                .andExpect(
+                        jsonPath("$.message")
+                                .value("프로젝트를 찾을 수 없습니다.")
+                );
+    }
+
+    @Test
+    void select_completedProject_returns409()
+            throws Exception {
+
+        when(gaugeService.select(
+                1L,
+                100L,
+                2L
+        )).thenThrow(
+                new CompletedProjectModificationException()
+        );
+
+        mockMvc.perform(
+                        patch("/api/projects/100/gauges/2/select")
+                                .with(
+                                        authentication(
+                                                new UsernamePasswordAuthenticationToken(
+                                                        1L,
+                                                        null,
+                                                        Collections.emptyList()
+                                                )
+                                        )
+                                )
+                )
+                .andExpect(status().isConflict())
+                .andExpect(
+                        jsonPath("$.message")
+                                .value(
+                                        "완성된 프로젝트는 수정할 수 없습니다."
+                                )
+                );
+    }
+
+    @Test
+    void select_withoutAuthentication_returns401()
+            throws Exception {
+
+        mockMvc.perform(
+                        patch("/api/projects/100/gauges/2/select")
+                )
+                .andExpect(status().isUnauthorized());
+
+        verifyNoInteractions(gaugeService);
+    }
+
 }

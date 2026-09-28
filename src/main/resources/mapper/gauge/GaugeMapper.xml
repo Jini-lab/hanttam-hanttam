@@ -61,4 +61,53 @@
 
     </select>
 
+    <select id="findById"
+            resultType="com.hanttamhanttam.gauge.domain.Gauge">
+
+        SELECT
+        gauge_id AS gaugeId,
+        project_id AS projectId,
+        yarn_name AS yarnName,
+        needle_size AS needleSize,
+        stitch_count AS stitchCount,
+        row_count AS rowCount,
+        measured_width_cm AS measuredWidthCm,
+        measured_height_cm AS measuredHeightCm,
+        is_selected AS isSelected,
+        created_at AS createdAt,
+        updated_at AS updatedAt
+
+        FROM gauges
+
+        WHERE gauge_id = #{gaugeId}
+        AND project_id = #{projectId}
+
+    </select>
+
+    <update id="clearSelected">
+
+        UPDATE gauges
+
+        SET
+        is_selected = 0,
+        updated_at = NOW()
+
+        WHERE project_id = #{projectId}
+        AND is_selected = 1
+
+    </update>
+
+    <update id="select">
+
+        UPDATE gauges
+
+        SET
+        is_selected = 1,
+        updated_at = NOW()
+
+        WHERE gauge_id = #{gaugeId}
+        AND project_id = #{projectId}
+
+    </update>
+
 </mapper>

@@ -3,6 +3,7 @@ package com.hanttamhanttam.gauge.service;
 import com.hanttamhanttam.gauge.domain.Gauge;
 import com.hanttamhanttam.gauge.dto.GaugeCreateRequest;
 import com.hanttamhanttam.gauge.dto.GaugeResponse;
+import com.hanttamhanttam.gauge.exception.GaugeNotFoundException;
 import com.hanttamhanttam.gauge.mapper.GaugeMapper;
 import com.hanttamhanttam.project.domain.ProjectStatus;
 import com.hanttamhanttam.project.dto.ProjectDetailResponse;
@@ -86,5 +87,64 @@ public class GaugeService {
                 .stream()
                 .map(GaugeResponse::new)
                 .toList();
+    }
+
+    @Transactional
+    public GaugeResponse select(
+            Long userId,
+            Long projectId,
+            Long gaugeId
+    ) {
+
+        // 1. Project 존재 + 소유권 확인
+        ProjectDetailResponse project =
+                projectMapper.findById(
+                        projectId,
+                        userId
+                );
+
+        if (project == null) {
+            throw new ProjectNotFoundException();
+        }
+
+        // 2. 완성 작품은 Gauge 변경 불가
+        if (project.getStatus() == ProjectStatus.COMPLETED) {
+            throw new CompletedProjectModificationException();
+        }
+
+        // 3. Gauge가 해당 Project에 실제 존재하는지 확인
+        Gauge gauge =
+                gaugeMapper.findById(
+                        gaugeId,
+                        projectId
+                );
+
+        if (gauge == null) {
+            throw new GaugeNotFoundException();
+        }
+
+        // 4. 기존 최종 Gauge 선택 해제
+        gaugeMapper.clearSelected(projectId);
+
+        // 5. 새로운 최종 Gauge 선택
+        gaugeMapper.select(
+                gaugeId,
+                projectId
+        );
+
+        // 6. Project 최근 활동 갱신
+        projectMapper.touchUpdatedAt(
+                projectId,
+                userId
+        );
+
+        // 7. 변경된 Gauge 다시 조회
+        Gauge selectedGauge =
+                gaugeMapper.findById(
+                        gaugeId,
+                        projectId
+                );
+
+        return new GaugeResponse(selectedGauge);
     }
 }

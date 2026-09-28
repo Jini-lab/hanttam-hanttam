@@ -58,4 +58,24 @@ public class GaugeController {
 
         return ResponseEntity.ok(response);
     }
+
+    @PatchMapping("/{gaugeId}/select")
+    public ResponseEntity<GaugeResponse> select(
+            Authentication authentication,
+            @PathVariable Long projectId,
+            @PathVariable Long gaugeId
+    ) {
+
+        Long userId =
+                (Long) authentication.getPrincipal();
+
+        GaugeResponse response =
+                gaugeService.select(
+                        userId,
+                        projectId,
+                        gaugeId
+                );
+
+        return ResponseEntity.ok(response);
+    }
 }

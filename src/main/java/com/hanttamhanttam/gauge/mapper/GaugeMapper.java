@@ -2,6 +2,7 @@ package com.hanttamhanttam.gauge.mapper;
 
 import com.hanttamhanttam.gauge.domain.Gauge;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
@@ -12,5 +13,17 @@ public interface GaugeMapper {
 
     List<Gauge> findAllByProjectId(
             Long projectId
+    );
+
+    Gauge findById(
+            @Param("gaugeId") Long gaugeId,
+            @Param("projectId") Long projectId
+    );
+
+    int clearSelected(Long projectId);
+
+    int select(
+            @Param("gaugeId") Long gaugeId,
+            @Param("projectId") Long projectId
     );
 }

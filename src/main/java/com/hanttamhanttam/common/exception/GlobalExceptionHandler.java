@@ -2,6 +2,7 @@ package com.hanttamhanttam.common.exception;
 
 import com.hanttamhanttam.auth.exception.InvalidCredentialsException;
 import com.hanttamhanttam.auth.exception.InvalidRefreshTokenException;
+import com.hanttamhanttam.gauge.exception.GaugeNotFoundException;
 import com.hanttamhanttam.pattern.exception.PatternNotFoundException;
 import com.hanttamhanttam.pattern.exception.PatternPdfNotFoundException;
 import com.hanttamhanttam.project.exception.CompletedProjectModificationException;
@@ -78,6 +79,16 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse(e.getMessage()));
+    }
+
+    @ExceptionHandler(GaugeNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleGaugeNotFound(
+            GaugeNotFoundException e
+    ) {
+
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
                 .body(new ErrorResponse(e.getMessage()));
     }
 }

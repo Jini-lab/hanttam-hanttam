@@ -3,6 +3,7 @@ package com.hanttamhanttam.gauge.service;
 import com.hanttamhanttam.gauge.domain.Gauge;
 import com.hanttamhanttam.gauge.dto.GaugeCreateRequest;
 import com.hanttamhanttam.gauge.dto.GaugeResponse;
+import com.hanttamhanttam.gauge.exception.GaugeNotFoundException;
 import com.hanttamhanttam.gauge.mapper.GaugeMapper;
 import com.hanttamhanttam.project.domain.ProjectStatus;
 import com.hanttamhanttam.project.dto.ProjectDetailResponse;
@@ -282,6 +283,152 @@ public class GaugeServiceTest {
                 () -> gaugeService.findAll(
                         1L,
                         999L
+                )
+        );
+
+        verifyNoInteractions(gaugeMapper);
+    }
+
+    @Test
+    void select_success() {
+
+        // given
+        Long userId = 1L;
+        Long projectId = 100L;
+        Long gaugeId = 2L;
+
+        ProjectDetailResponse project =
+                new ProjectDetailResponse();
+
+        project.setProjectId(projectId);
+        project.setStatus(ProjectStatus.IN_PROGRESS);
+
+        when(projectMapper.findById(
+                projectId,
+                userId
+        )).thenReturn(project);
+
+        Gauge before = new Gauge();
+        before.setGaugeId(gaugeId);
+        before.setProjectId(projectId);
+        before.setIsSelected(false);
+
+        Gauge after = new Gauge();
+        after.setGaugeId(gaugeId);
+        after.setProjectId(projectId);
+        after.setIsSelected(true);
+
+        when(gaugeMapper.findById(
+                gaugeId,
+                projectId
+        ))
+                .thenReturn(before)
+                .thenReturn(after);
+
+
+        // when
+        GaugeResponse result =
+                gaugeService.select(
+                        userId,
+                        projectId,
+                        gaugeId
+                );
+
+
+        // then
+        assertEquals(
+                gaugeId,
+                result.getGaugeId()
+        );
+
+        assertTrue(
+                result.getIsSelected()
+        );
+
+        verify(gaugeMapper)
+                .clearSelected(projectId);
+
+        verify(gaugeMapper)
+                .select(
+                        gaugeId,
+                        projectId
+                );
+
+        verify(projectMapper)
+                .touchUpdatedAt(
+                        projectId,
+                        userId
+                );
+
+        verify(gaugeMapper, times(2))
+                .findById(
+                        gaugeId,
+                        projectId
+                );
+    }
+
+    @Test
+    void select_gaugeNotFound_throwsException() {
+
+        Long userId = 1L;
+        Long projectId = 100L;
+        Long gaugeId = 999L;
+
+        ProjectDetailResponse project =
+                new ProjectDetailResponse();
+
+        project.setProjectId(projectId);
+        project.setStatus(ProjectStatus.IN_PROGRESS);
+
+        when(projectMapper.findById(
+                projectId,
+                userId
+        )).thenReturn(project);
+
+        when(gaugeMapper.findById(
+                gaugeId,
+                projectId
+        )).thenReturn(null);
+
+        assertThrows(
+                GaugeNotFoundException.class,
+                () -> gaugeService.select(
+                        userId,
+                        projectId,
+                        gaugeId
+                )
+        );
+
+        verify(gaugeMapper, never())
+                .clearSelected(anyLong());
+
+        verify(gaugeMapper, never())
+                .select(
+                        anyLong(),
+                        anyLong()
+                );
+    }
+
+    @Test
+    void select_completedProject_throwsException() {
+
+        ProjectDetailResponse project =
+                new ProjectDetailResponse();
+
+        project.setProjectId(100L);
+        project.setStatus(ProjectStatus.COMPLETED);
+
+        when(projectMapper.findById(
+                100L,
+                1L
+        )).thenReturn(project);
+
+        assertThrows(
+                CompletedProjectModificationException.class,
+                () -> gaugeService.select(
+                        1L,
+                        100L,
+                        2L
                 )
         );
 
