@@ -28,4 +28,9 @@ public interface ProjectMapper {
             @Param("userId") Long userId,
             @Param("request") ProjectUpdateRequest request
     );
+
+    int start(
+            @Param("projectId") Long projectId,
+            @Param("userId") Long userId
+    );
 }

@@ -82,4 +82,22 @@ public class ProjectController {
 
         return ResponseEntity.ok(response);
     }
+
+    @PatchMapping("/{projectId}/start")
+    public ResponseEntity<ProjectDetailResponse> start(
+            Authentication authentication,
+            @PathVariable Long projectId
+    ) {
+
+        Long userId =
+                (Long) authentication.getPrincipal();
+
+        ProjectDetailResponse response =
+                projectService.start(
+                        userId,
+                        projectId
+                );
+
+        return ResponseEntity.ok(response);
+    }
 }

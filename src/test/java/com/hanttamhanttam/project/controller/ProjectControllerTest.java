@@ -8,6 +8,7 @@ import com.hanttamhanttam.project.domain.Project;
 import com.hanttamhanttam.project.domain.ProjectStatus;
 import com.hanttamhanttam.project.dto.*;
 import com.hanttamhanttam.project.exception.CompletedProjectModificationException;
+import com.hanttamhanttam.project.exception.InvalidProjectStatusException;
 import com.hanttamhanttam.project.exception.ProjectNotFoundException;
 import com.hanttamhanttam.project.service.ProjectService;
 import com.hanttamhanttam.pattern.exception.PatternNotFoundException;
@@ -21,6 +22,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
 
+import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
 
@@ -570,4 +572,129 @@ public class ProjectControllerTest {
 
         verifyNoInteractions(projectService);
     }
+
+    @Test
+    void start_success() throws Exception {
+
+        // given
+        ProjectDetailResponse response =
+                new ProjectDetailResponse();
+
+        response.setProjectId(100L);
+        response.setStatus(ProjectStatus.IN_PROGRESS);
+        response.setStartDate(LocalDate.of(2026, 9, 28));
+
+        when(projectService.start(
+                1L,
+                100L
+        )).thenReturn(response);
+
+
+        // when & then
+        mockMvc.perform(
+                        patch("/api/projects/100/start")
+                                .with(
+                                        authentication(
+                                                new UsernamePasswordAuthenticationToken(
+                                                        1L,
+                                                        null,
+                                                        Collections.emptyList()
+                                                )
+                                        )
+                                )
+                )
+                .andExpect(status().isOk())
+                .andExpect(
+                        jsonPath("$.projectId")
+                                .value(100L)
+                )
+                .andExpect(
+                        jsonPath("$.status")
+                                .value("IN_PROGRESS")
+                )
+                .andExpect(
+                        jsonPath("$.startDate")
+                                .value("2026-09-28")
+                );
+
+        verify(projectService)
+                .start(1L, 100L);
+    }
+
+    @Test
+    void start_inProgressProject_returns409()
+            throws Exception {
+
+        when(projectService.start(
+                1L,
+                100L
+        )).thenThrow(
+                new InvalidProjectStatusException(
+                        "준비 중인 프로젝트만 시작할 수 있습니다."
+                )
+        );
+
+        mockMvc.perform(
+                        patch("/api/projects/100/start")
+                                .with(
+                                        authentication(
+                                                new UsernamePasswordAuthenticationToken(
+                                                        1L,
+                                                        null,
+                                                        Collections.emptyList()
+                                                )
+                                        )
+                                )
+                )
+                .andExpect(status().isConflict())
+                .andExpect(
+                        jsonPath("$.message")
+                                .value(
+                                        "준비 중인 프로젝트만 시작할 수 있습니다."
+                                )
+                );
+    }
+
+    @Test
+    void start_notFound_returns404()
+            throws Exception {
+
+        when(projectService.start(
+                1L,
+                999L
+        )).thenThrow(
+                new ProjectNotFoundException()
+        );
+
+        mockMvc.perform(
+                        patch("/api/projects/999/start")
+                                .with(
+                                        authentication(
+                                                new UsernamePasswordAuthenticationToken(
+                                                        1L,
+                                                        null,
+                                                        Collections.emptyList()
+                                                )
+                                        )
+                                )
+                )
+                .andExpect(status().isNotFound())
+                .andExpect(
+                        jsonPath("$.message")
+                                .value("프로젝트를 찾을 수 없습니다.")
+                );
+    }
+
+    @Test
+    void start_withoutAuthentication_returns401()
+            throws Exception {
+
+        mockMvc.perform(
+                        patch("/api/projects/100/start")
+                )
+                .andExpect(status().isUnauthorized());
+
+        verifyNoInteractions(projectService);
+    }
+
 }

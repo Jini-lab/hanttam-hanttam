@@ -144,4 +144,23 @@
 
     </update>
 
+    <update id="start">
+
+        UPDATE projects p
+
+        INNER JOIN patterns pt
+        ON p.pattern_id = pt.pattern_id
+
+        SET
+        p.status = 'IN_PROGRESS',
+        p.start_date = CURDATE(),
+        p.updated_at = NOW()
+
+        WHERE p.project_id = #{projectId}
+        AND pt.user_id = #{userId}
+        AND p.deleted_at IS NULL
+        AND p.status = 'PREPARING'
+
+    </update>
+
 </mapper>

@@ -7,6 +7,7 @@ import com.hanttamhanttam.project.domain.Project;
 import com.hanttamhanttam.project.domain.ProjectStatus;
 import com.hanttamhanttam.project.dto.*;
 import com.hanttamhanttam.project.exception.CompletedProjectModificationException;
+import com.hanttamhanttam.project.exception.InvalidProjectStatusException;
 import com.hanttamhanttam.project.exception.ProjectNotFoundException;
 import com.hanttamhanttam.project.mapper.ProjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -127,6 +128,39 @@ public class ProjectService {
                 projectId,
                 userId,
                 request
+        );
+
+        return projectMapper.findById(
+                projectId,
+                userId
+        );
+    }
+
+    @Transactional
+    public ProjectDetailResponse start(
+            Long userId,
+            Long projectId
+    ) {
+
+        ProjectDetailResponse project =
+                projectMapper.findById(
+                        projectId,
+                        userId
+                );
+
+        if (project == null) {
+            throw new ProjectNotFoundException();
+        }
+
+        if (project.getStatus() != ProjectStatus.PREPARING) {
+            throw new InvalidProjectStatusException(
+                    "준비 중인 프로젝트만 시작할 수 있습니다."
+            );
+        }
+
+        projectMapper.start(
+                projectId,
+                userId
         );
 
         return projectMapper.findById(

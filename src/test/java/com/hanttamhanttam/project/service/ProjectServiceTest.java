@@ -7,6 +7,7 @@ import com.hanttamhanttam.project.domain.Project;
 import com.hanttamhanttam.project.domain.ProjectStatus;
 import com.hanttamhanttam.project.dto.*;
 import com.hanttamhanttam.project.exception.CompletedProjectModificationException;
+import com.hanttamhanttam.project.exception.InvalidProjectStatusException;
 import com.hanttamhanttam.project.exception.ProjectNotFoundException;
 import com.hanttamhanttam.project.mapper.ProjectMapper;
 import org.junit.jupiter.api.Test;
@@ -17,6 +18,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -452,5 +454,113 @@ public class ProjectServiceTest {
                         anyLong(),
                         any(ProjectUpdateRequest.class)
                 );
+    }
+
+    @Test
+    void start_success() {
+
+        // given
+        Long userId = 1L;
+        Long projectId = 100L;
+
+        ProjectDetailResponse before =
+                new ProjectDetailResponse();
+
+        before.setProjectId(projectId);
+        before.setStatus(ProjectStatus.PREPARING);
+
+        ProjectDetailResponse after =
+                new ProjectDetailResponse();
+
+        after.setProjectId(projectId);
+        after.setStatus(ProjectStatus.IN_PROGRESS);
+        after.setStartDate(LocalDate.now());
+
+        when(projectMapper.findById(
+                projectId,
+                userId
+        ))
+                .thenReturn(before)
+                .thenReturn(after);
+
+        when(projectMapper.start(
+                projectId,
+                userId
+        )).thenReturn(1);
+
+
+        // when
+        ProjectDetailResponse result =
+                projectService.start(
+                        userId,
+                        projectId
+                );
+
+
+        // then
+        assertEquals(
+                ProjectStatus.IN_PROGRESS,
+                result.getStatus()
+        );
+
+        assertEquals(
+                LocalDate.now(),
+                result.getStartDate()
+        );
+
+        verify(projectMapper)
+                .start(projectId, userId);
+
+        verify(projectMapper, times(2))
+                .findById(projectId, userId);
+    }
+
+    @Test
+    void start_inProgressProject_throwsException() {
+
+        Long userId = 1L;
+        Long projectId = 100L;
+
+        ProjectDetailResponse project =
+                new ProjectDetailResponse();
+
+        project.setProjectId(projectId);
+        project.setStatus(ProjectStatus.IN_PROGRESS);
+
+        when(projectMapper.findById(
+                projectId,
+                userId
+        )).thenReturn(project);
+
+        assertThrows(
+                InvalidProjectStatusException.class,
+                () -> projectService.start(
+                        userId,
+                        projectId
+                )
+        );
+
+        verify(projectMapper, never())
+                .start(anyLong(), anyLong());
+    }
+
+    @Test
+    void start_notFound_throwsException() {
+
+        when(projectMapper.findById(
+                999L,
+                1L
+        )).thenReturn(null);
+
+        assertThrows(
+                ProjectNotFoundException.class,
+                () -> projectService.start(
+                        1L,
+                        999L
+                )
+        );
+
+        verify(projectMapper, never())
+                .start(anyLong(), anyLong());
     }
 }

@@ -5,6 +5,7 @@ import com.hanttamhanttam.auth.exception.InvalidRefreshTokenException;
 import com.hanttamhanttam.pattern.exception.PatternNotFoundException;
 import com.hanttamhanttam.pattern.exception.PatternPdfNotFoundException;
 import com.hanttamhanttam.project.exception.CompletedProjectModificationException;
+import com.hanttamhanttam.project.exception.InvalidProjectStatusException;
 import com.hanttamhanttam.project.exception.ProjectNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -63,6 +64,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(CompletedProjectModificationException.class)
     public ResponseEntity<ErrorResponse> handleCompletedProjectModification(
             CompletedProjectModificationException e
+    ) {
+
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse(e.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidProjectStatusException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidProjectStatus(
+            InvalidProjectStatusException e
     ) {
 
         return ResponseEntity
