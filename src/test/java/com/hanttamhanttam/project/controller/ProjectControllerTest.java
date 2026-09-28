@@ -7,6 +7,7 @@ import com.hanttamhanttam.common.security.JwtProvider;
 import com.hanttamhanttam.project.domain.Project;
 import com.hanttamhanttam.project.domain.ProjectStatus;
 import com.hanttamhanttam.project.dto.ProjectCreateRequest;
+import com.hanttamhanttam.project.dto.ProjectListResponse;
 import com.hanttamhanttam.project.dto.ProjectResponse;
 import com.hanttamhanttam.project.service.ProjectService;
 import com.hanttamhanttam.pattern.exception.PatternNotFoundException;
@@ -21,6 +22,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
 
 import java.util.Collections;
+import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -29,6 +31,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
 @WebMvcTest(ProjectController.class)
 @Import({
@@ -201,6 +204,62 @@ public class ProjectControllerTest {
                                 .content(
                                         objectMapper.writeValueAsString(request)
                                 )
+                )
+                .andExpect(status().isUnauthorized());
+
+        verifyNoInteractions(projectService);
+    }
+
+    @Test
+    void findAll_success() throws Exception {
+
+        // given
+        ProjectListResponse project =
+                new ProjectListResponse();
+
+        project.setProjectId(100L);
+        project.setPatternId(10L);
+        project.setPatternName("Cable Sweater");
+        project.setThumbnailPath("thumbnail.png");
+        project.setSize("S");
+        project.setStatus(ProjectStatus.PREPARING);
+        project.setCurrentPage(1);
+
+        when(projectService.findAll(1L))
+                .thenReturn(List.of(project));
+
+
+        // when & then
+        mockMvc.perform(
+                        get("/api/projects")
+                                .with(
+                                        authentication(
+                                                new UsernamePasswordAuthenticationToken(
+                                                        1L,
+                                                        null,
+                                                        Collections.emptyList()
+                                                )
+                                        )
+                                )
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].projectId").value(100L))
+                .andExpect(jsonPath("$[0].patternId").value(10L))
+                .andExpect(jsonPath("$[0].patternName").value("Cable Sweater"))
+                .andExpect(jsonPath("$[0].size").value("S"))
+                .andExpect(jsonPath("$[0].status").value("PREPARING"))
+                .andExpect(jsonPath("$[0].currentPage").value(1));
+
+        verify(projectService)
+                .findAll(1L);
+    }
+
+    @Test
+    void findAll_withoutAuthentication_returns401()
+            throws Exception {
+
+        mockMvc.perform(
+                        get("/api/projects")
                 )
                 .andExpect(status().isUnauthorized());
 

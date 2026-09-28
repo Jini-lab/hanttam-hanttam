@@ -41,4 +41,29 @@
 
     </insert>
 
+    <select id="findAllByUserId"
+            resultType="com.hanttamhanttam.project.dto.ProjectListResponse">
+
+        SELECT
+        p.project_id AS projectId,
+        p.pattern_id AS patternId,
+        pt.pattern_name AS patternName,
+        pt.thumbnail_path AS thumbnailPath,
+        p.size,
+        p.status,
+        p.current_page AS currentPage,
+        p.updated_at AS updatedAt
+
+        FROM projects p
+
+        INNER JOIN patterns pt
+        ON p.pattern_id = pt.pattern_id
+
+        WHERE pt.user_id = #{userId}
+        AND p.deleted_at IS NULL
+
+        ORDER BY p.updated_at DESC
+
+    </select>
+
 </mapper>

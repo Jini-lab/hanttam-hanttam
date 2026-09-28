@@ -6,6 +6,7 @@ import com.hanttamhanttam.pattern.mapper.PatternMapper;
 import com.hanttamhanttam.project.domain.Project;
 import com.hanttamhanttam.project.domain.ProjectStatus;
 import com.hanttamhanttam.project.dto.ProjectCreateRequest;
+import com.hanttamhanttam.project.dto.ProjectListResponse;
 import com.hanttamhanttam.project.dto.ProjectResponse;
 import com.hanttamhanttam.project.mapper.ProjectMapper;
 import org.junit.jupiter.api.Test;
@@ -16,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -193,5 +195,50 @@ public class ProjectServiceTest {
 
         verify(projectMapper, never())
                 .insert(any(Project.class));
+    }
+
+    @Test
+    void findAll_success() {
+
+        // given
+        Long userId = 1L;
+
+        ProjectListResponse project1 =
+                new ProjectListResponse();
+        project1.setProjectId(2L);
+        project1.setPatternName("Ivy Top");
+
+        ProjectListResponse project2 =
+                new ProjectListResponse();
+        project2.setProjectId(1L);
+        project2.setPatternName("Cable Sweater");
+
+        List<ProjectListResponse> projects =
+                List.of(project1, project2);
+
+        when(projectMapper.findAllByUserId(userId))
+                .thenReturn(projects);
+
+
+        // when
+        List<ProjectListResponse> result =
+                projectService.findAll(userId);
+
+
+        // then
+        assertEquals(2, result.size());
+
+        assertEquals(
+                2L,
+                result.get(0).getProjectId()
+        );
+
+        assertEquals(
+                "Ivy Top",
+                result.get(0).getPatternName()
+        );
+
+        verify(projectMapper)
+                .findAllByUserId(userId);
     }
 }
