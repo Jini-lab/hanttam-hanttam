@@ -5,10 +5,8 @@ import com.hanttamhanttam.pattern.exception.PatternNotFoundException;
 import com.hanttamhanttam.pattern.mapper.PatternMapper;
 import com.hanttamhanttam.project.domain.Project;
 import com.hanttamhanttam.project.domain.ProjectStatus;
-import com.hanttamhanttam.project.dto.ProjectCreateRequest;
-import com.hanttamhanttam.project.dto.ProjectDetailResponse;
-import com.hanttamhanttam.project.dto.ProjectListResponse;
-import com.hanttamhanttam.project.dto.ProjectResponse;
+import com.hanttamhanttam.project.dto.*;
+import com.hanttamhanttam.project.exception.CompletedProjectModificationException;
 import com.hanttamhanttam.project.exception.ProjectNotFoundException;
 import com.hanttamhanttam.project.mapper.ProjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -102,5 +100,38 @@ public class ProjectService {
         }
 
         return project;
+    }
+
+    @Transactional
+    public ProjectDetailResponse update(
+            Long userId,
+            Long projectId,
+            ProjectUpdateRequest request
+    ) {
+
+        ProjectDetailResponse project =
+                projectMapper.findById(
+                        projectId,
+                        userId
+                );
+
+        if (project == null) {
+            throw new ProjectNotFoundException();
+        }
+
+        if (project.getStatus() == ProjectStatus.COMPLETED) {
+            throw new CompletedProjectModificationException();
+        }
+
+        projectMapper.update(
+                projectId,
+                userId,
+                request
+        );
+
+        return projectMapper.findById(
+                projectId,
+                userId
+        );
     }
 }

@@ -3,6 +3,7 @@ package com.hanttamhanttam.project.mapper;
 import com.hanttamhanttam.project.domain.Project;
 import com.hanttamhanttam.project.dto.ProjectDetailResponse;
 import com.hanttamhanttam.project.dto.ProjectListResponse;
+import com.hanttamhanttam.project.dto.ProjectUpdateRequest;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -20,5 +21,11 @@ public interface ProjectMapper {
     ProjectDetailResponse findById(
             @Param("projectId") Long projectId,
             @Param("userId") Long userId
+    );
+
+    int update(
+            @Param("projectId") Long projectId,
+            @Param("userId") Long userId,
+            @Param("request") ProjectUpdateRequest request
     );
 }

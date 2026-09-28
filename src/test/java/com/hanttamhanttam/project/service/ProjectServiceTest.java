@@ -5,10 +5,8 @@ import com.hanttamhanttam.pattern.exception.PatternNotFoundException;
 import com.hanttamhanttam.pattern.mapper.PatternMapper;
 import com.hanttamhanttam.project.domain.Project;
 import com.hanttamhanttam.project.domain.ProjectStatus;
-import com.hanttamhanttam.project.dto.ProjectCreateRequest;
-import com.hanttamhanttam.project.dto.ProjectDetailResponse;
-import com.hanttamhanttam.project.dto.ProjectListResponse;
-import com.hanttamhanttam.project.dto.ProjectResponse;
+import com.hanttamhanttam.project.dto.*;
+import com.hanttamhanttam.project.exception.CompletedProjectModificationException;
 import com.hanttamhanttam.project.exception.ProjectNotFoundException;
 import com.hanttamhanttam.project.mapper.ProjectMapper;
 import org.junit.jupiter.api.Test;
@@ -319,5 +317,140 @@ public class ProjectServiceTest {
                         999L
                 )
         );
+    }
+
+    @Test
+    void update_success() {
+
+        // given
+        Long userId = 1L;
+        Long projectId = 100L;
+
+        ProjectDetailResponse before =
+                new ProjectDetailResponse();
+
+        before.setProjectId(projectId);
+        before.setSize("S");
+        before.setStatus(ProjectStatus.IN_PROGRESS);
+
+        ProjectUpdateRequest request =
+                new ProjectUpdateRequest();
+
+        request.setSize("M");
+
+        ProjectDetailResponse after =
+                new ProjectDetailResponse();
+
+        after.setProjectId(projectId);
+        after.setSize("M");
+        after.setStatus(ProjectStatus.IN_PROGRESS);
+
+        when(projectMapper.findById(
+                projectId,
+                userId
+        ))
+                .thenReturn(before)
+                .thenReturn(after);
+
+        when(projectMapper.update(
+                projectId,
+                userId,
+                request
+        )).thenReturn(1);
+
+
+        // when
+        ProjectDetailResponse result =
+                projectService.update(
+                        userId,
+                        projectId,
+                        request
+                );
+
+
+        // then
+        assertEquals("M", result.getSize());
+
+        verify(projectMapper)
+                .update(
+                        projectId,
+                        userId,
+                        request
+                );
+
+        verify(projectMapper, times(2))
+                .findById(projectId, userId);
+    }
+
+    @Test
+    void update_completedProject_throwsException() {
+
+        // given
+        Long userId = 1L;
+        Long projectId = 100L;
+
+        ProjectDetailResponse project =
+                new ProjectDetailResponse();
+
+        project.setProjectId(projectId);
+        project.setStatus(ProjectStatus.COMPLETED);
+
+        ProjectUpdateRequest request =
+                new ProjectUpdateRequest();
+
+        request.setSize("M");
+
+        when(projectMapper.findById(
+                projectId,
+                userId
+        )).thenReturn(project);
+
+
+        // when & then
+        assertThrows(
+                CompletedProjectModificationException.class,
+                () -> projectService.update(
+                        userId,
+                        projectId,
+                        request
+                )
+        );
+
+        verify(projectMapper, never())
+                .update(
+                        anyLong(),
+                        anyLong(),
+                        any(ProjectUpdateRequest.class)
+                );
+    }
+
+    @Test
+    void update_notFound_throwsException() {
+
+        ProjectUpdateRequest request =
+                new ProjectUpdateRequest();
+
+        request.setSize("M");
+
+        when(projectMapper.findById(
+                999L,
+                1L
+        )).thenReturn(null);
+
+        assertThrows(
+                ProjectNotFoundException.class,
+                () -> projectService.update(
+                        1L,
+                        999L,
+                        request
+                )
+        );
+
+        verify(projectMapper, never())
+                .update(
+                        anyLong(),
+                        anyLong(),
+                        any(ProjectUpdateRequest.class)
+                );
     }
 }

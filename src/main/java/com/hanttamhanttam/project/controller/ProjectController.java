@@ -1,9 +1,6 @@
 package com.hanttamhanttam.project.controller;
 
-import com.hanttamhanttam.project.dto.ProjectCreateRequest;
-import com.hanttamhanttam.project.dto.ProjectDetailResponse;
-import com.hanttamhanttam.project.dto.ProjectListResponse;
-import com.hanttamhanttam.project.dto.ProjectResponse;
+import com.hanttamhanttam.project.dto.*;
 import com.hanttamhanttam.project.service.ProjectService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -61,6 +58,26 @@ public class ProjectController {
                 projectService.findById(
                         userId,
                         projectId
+                );
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping("/{projectId}")
+    public ResponseEntity<ProjectDetailResponse> update(
+            Authentication authentication,
+            @PathVariable Long projectId,
+            @Valid @RequestBody ProjectUpdateRequest request
+    ) {
+
+        Long userId =
+                (Long) authentication.getPrincipal();
+
+        ProjectDetailResponse response =
+                projectService.update(
+                        userId,
+                        projectId,
+                        request
                 );
 
         return ResponseEntity.ok(response);

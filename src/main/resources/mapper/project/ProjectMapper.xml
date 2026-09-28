@@ -102,4 +102,46 @@
 
     </select>
 
+    <update id="update">
+
+        UPDATE projects p
+
+        INNER JOIN patterns pt
+        ON p.pattern_id = pt.pattern_id
+
+        SET
+        p.size = COALESCE(#{request.size}, p.size),
+
+        p.pattern_gauge_stitch_count =
+        COALESCE(
+        #{request.patternGaugeStitchCount},
+        p.pattern_gauge_stitch_count
+        ),
+
+        p.pattern_gauge_row_count =
+        COALESCE(
+        #{request.patternGaugeRowCount},
+        p.pattern_gauge_row_count
+        ),
+
+        p.pattern_gauge_width_cm =
+        COALESCE(
+        #{request.patternGaugeWidthCm},
+        p.pattern_gauge_width_cm
+        ),
+
+        p.pattern_gauge_height_cm =
+        COALESCE(
+        #{request.patternGaugeHeightCm},
+        p.pattern_gauge_height_cm
+        ),
+
+        p.updated_at = NOW()
+
+        WHERE p.project_id = #{projectId}
+        AND pt.user_id = #{userId}
+        AND p.deleted_at IS NULL
+
+    </update>
+
 </mapper>

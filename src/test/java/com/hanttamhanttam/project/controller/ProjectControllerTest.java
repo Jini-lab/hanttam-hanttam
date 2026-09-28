@@ -6,10 +6,8 @@ import com.hanttamhanttam.common.security.JwtAuthenticationFilter;
 import com.hanttamhanttam.common.security.JwtProvider;
 import com.hanttamhanttam.project.domain.Project;
 import com.hanttamhanttam.project.domain.ProjectStatus;
-import com.hanttamhanttam.project.dto.ProjectCreateRequest;
-import com.hanttamhanttam.project.dto.ProjectDetailResponse;
-import com.hanttamhanttam.project.dto.ProjectListResponse;
-import com.hanttamhanttam.project.dto.ProjectResponse;
+import com.hanttamhanttam.project.dto.*;
+import com.hanttamhanttam.project.exception.CompletedProjectModificationException;
 import com.hanttamhanttam.project.exception.ProjectNotFoundException;
 import com.hanttamhanttam.project.service.ProjectService;
 import com.hanttamhanttam.pattern.exception.PatternNotFoundException;
@@ -30,10 +28,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
 @WebMvcTest(ProjectController.class)
 @Import({
@@ -365,6 +362,209 @@ public class ProjectControllerTest {
 
         mockMvc.perform(
                         get("/api/projects/100")
+                )
+                .andExpect(status().isUnauthorized());
+
+        verifyNoInteractions(projectService);
+    }
+
+    @Test
+    void update_success() throws Exception {
+
+        // given
+        ProjectUpdateRequest request =
+                new ProjectUpdateRequest();
+
+        request.setSize("M");
+        request.setPatternGaugeStitchCount(24);
+        request.setPatternGaugeRowCount(32);
+
+        ProjectDetailResponse response =
+                new ProjectDetailResponse();
+
+        response.setProjectId(100L);
+        response.setPatternId(10L);
+        response.setPatternName("Cable Sweater");
+        response.setSize("M");
+        response.setStatus(ProjectStatus.IN_PROGRESS);
+        response.setPatternGaugeStitchCount(24);
+        response.setPatternGaugeRowCount(32);
+        response.setCurrentPage(1);
+
+        when(projectService.update(
+                eq(1L),
+                eq(100L),
+                any(ProjectUpdateRequest.class)
+        )).thenReturn(response);
+
+
+        // when & then
+        mockMvc.perform(
+                        patch("/api/projects/100")
+                                .with(
+                                        authentication(
+                                                new UsernamePasswordAuthenticationToken(
+                                                        1L,
+                                                        null,
+                                                        Collections.emptyList()
+                                                )
+                                        )
+                                )
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        objectMapper.writeValueAsString(request)
+                                )
+                )
+                .andExpect(status().isOk())
+                .andExpect(
+                        jsonPath("$.projectId")
+                                .value(100L)
+                )
+                .andExpect(
+                        jsonPath("$.size")
+                                .value("M")
+                )
+                .andExpect(
+                        jsonPath("$.patternGaugeStitchCount")
+                                .value(24)
+                )
+                .andExpect(
+                        jsonPath("$.patternGaugeRowCount")
+                                .value(32)
+                );
+
+        verify(projectService).update(
+                eq(1L),
+                eq(100L),
+                any(ProjectUpdateRequest.class)
+        );
+    }
+
+    @Test
+    void update_notFound_returns404()
+            throws Exception {
+
+        ProjectUpdateRequest request =
+                new ProjectUpdateRequest();
+
+        request.setSize("M");
+
+        when(projectService.update(
+                eq(1L),
+                eq(999L),
+                any(ProjectUpdateRequest.class)
+        )).thenThrow(
+                new ProjectNotFoundException()
+        );
+
+        mockMvc.perform(
+                        patch("/api/projects/999")
+                                .with(
+                                        authentication(
+                                                new UsernamePasswordAuthenticationToken(
+                                                        1L,
+                                                        null,
+                                                        Collections.emptyList()
+                                                )
+                                        )
+                                )
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        objectMapper.writeValueAsString(request)
+                                )
+                )
+                .andExpect(status().isNotFound())
+                .andExpect(
+                        jsonPath("$.message")
+                                .value("프로젝트를 찾을 수 없습니다.")
+                );
+    }
+
+    @Test
+    void update_completedProject_returns409()
+            throws Exception {
+
+        ProjectUpdateRequest request =
+                new ProjectUpdateRequest();
+
+        request.setSize("M");
+
+        when(projectService.update(
+                eq(1L),
+                eq(100L),
+                any(ProjectUpdateRequest.class)
+        )).thenThrow(
+                new CompletedProjectModificationException()
+        );
+
+        mockMvc.perform(
+                        patch("/api/projects/100")
+                                .with(
+                                        authentication(
+                                                new UsernamePasswordAuthenticationToken(
+                                                        1L,
+                                                        null,
+                                                        Collections.emptyList()
+                                                )
+                                        )
+                                )
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        objectMapper.writeValueAsString(request)
+                                )
+                )
+                .andExpect(status().isConflict())
+                .andExpect(
+                        jsonPath("$.message")
+                                .value("완성된 프로젝트는 수정할 수 없습니다.")
+                );
+    }
+
+    @Test
+    void update_invalidGauge_returns400()
+            throws Exception {
+
+        ProjectUpdateRequest request =
+                new ProjectUpdateRequest();
+
+        request.setPatternGaugeStitchCount(0);
+
+        mockMvc.perform(
+                        patch("/api/projects/100")
+                                .with(
+                                        authentication(
+                                                new UsernamePasswordAuthenticationToken(
+                                                        1L,
+                                                        null,
+                                                        Collections.emptyList()
+                                                )
+                                        )
+                                )
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        objectMapper.writeValueAsString(request)
+                                )
+                )
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(projectService);
+    }
+
+    @Test
+    void update_withoutAuthentication_returns401()
+            throws Exception {
+
+        ProjectUpdateRequest request =
+                new ProjectUpdateRequest();
+
+        request.setSize("M");
+
+        mockMvc.perform(
+                        patch("/api/projects/100")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        objectMapper.writeValueAsString(request)
+                                )
                 )
                 .andExpect(status().isUnauthorized());
 
