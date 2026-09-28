@@ -13,6 +13,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class GaugeService {
@@ -61,5 +63,28 @@ public class GaugeService {
         );
 
         return new GaugeResponse(gauge);
+    }
+
+    @Transactional(readOnly = true)
+    public List<GaugeResponse> findAll(
+            Long userId,
+            Long projectId
+    ) {
+
+        ProjectDetailResponse project =
+                projectMapper.findById(
+                        projectId,
+                        userId
+                );
+
+        if (project == null) {
+            throw new ProjectNotFoundException();
+        }
+
+        return gaugeMapper
+                .findAllByProjectId(projectId)
+                .stream()
+                .map(GaugeResponse::new)
+                .toList();
     }
 }

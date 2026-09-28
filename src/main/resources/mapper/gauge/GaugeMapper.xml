@@ -37,4 +37,28 @@
 
     </insert>
 
+    <select id="findAllByProjectId"
+            resultType="com.hanttamhanttam.gauge.domain.Gauge">
+
+        SELECT
+        gauge_id AS gaugeId,
+        project_id AS projectId,
+        yarn_name AS yarnName,
+        needle_size AS needleSize,
+        stitch_count AS stitchCount,
+        row_count AS rowCount,
+        measured_width_cm AS measuredWidthCm,
+        measured_height_cm AS measuredHeightCm,
+        is_selected AS isSelected,
+        created_at AS createdAt,
+        updated_at AS updatedAt
+
+        FROM gauges
+
+        WHERE project_id = #{projectId}
+
+        ORDER BY created_at ASC
+
+    </select>
+
 </mapper>

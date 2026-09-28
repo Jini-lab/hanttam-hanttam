@@ -10,6 +10,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/projects/{projectId}/gauges")
@@ -37,5 +39,23 @@ public class GaugeController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(response);
+    }
+
+    @GetMapping
+    public ResponseEntity<List<GaugeResponse>> findAll(
+            Authentication authentication,
+            @PathVariable Long projectId
+    ) {
+
+        Long userId =
+                (Long) authentication.getPrincipal();
+
+        List<GaugeResponse> response =
+                gaugeService.findAll(
+                        userId,
+                        projectId
+                );
+
+        return ResponseEntity.ok(response);
     }
 }

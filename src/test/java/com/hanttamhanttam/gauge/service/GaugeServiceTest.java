@@ -17,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -187,6 +188,100 @@ public class GaugeServiceTest {
                         1L,
                         999L,
                         request
+                )
+        );
+
+        verifyNoInteractions(gaugeMapper);
+    }
+
+    @Test
+    void findAll_success() {
+
+        // given
+        Long userId = 1L;
+        Long projectId = 100L;
+
+        ProjectDetailResponse project =
+                new ProjectDetailResponse();
+
+        project.setProjectId(projectId);
+        project.setStatus(ProjectStatus.IN_PROGRESS);
+
+        when(projectMapper.findById(
+                projectId,
+                userId
+        )).thenReturn(project);
+
+        Gauge gauge1 = new Gauge();
+        gauge1.setGaugeId(1L);
+        gauge1.setProjectId(projectId);
+        gauge1.setYarnName("Merino Wool");
+        gauge1.setNeedleSize(new BigDecimal("4.50"));
+        gauge1.setIsSelected(false);
+
+        Gauge gauge2 = new Gauge();
+        gauge2.setGaugeId(2L);
+        gauge2.setProjectId(projectId);
+        gauge2.setYarnName("Merino Wool");
+        gauge2.setNeedleSize(new BigDecimal("5.00"));
+        gauge2.setIsSelected(true);
+
+        when(gaugeMapper.findAllByProjectId(projectId))
+                .thenReturn(List.of(gauge1, gauge2));
+
+
+        // when
+        List<GaugeResponse> result =
+                gaugeService.findAll(
+                        userId,
+                        projectId
+                );
+
+
+        // then
+        assertEquals(2, result.size());
+
+        assertEquals(
+                1L,
+                result.get(0).getGaugeId()
+        );
+
+        assertEquals(
+                new BigDecimal("4.50"),
+                result.get(0).getNeedleSize()
+        );
+
+        assertEquals(
+                2L,
+                result.get(1).getGaugeId()
+        );
+
+        assertEquals(
+                new BigDecimal("5.00"),
+                result.get(1).getNeedleSize()
+        );
+
+        assertTrue(
+                result.get(1).getIsSelected()
+        );
+
+        verify(gaugeMapper)
+                .findAllByProjectId(projectId);
+    }
+
+    @Test
+    void findAll_projectNotFound_throwsException() {
+
+        when(projectMapper.findById(
+                999L,
+                1L
+        )).thenReturn(null);
+
+        assertThrows(
+                ProjectNotFoundException.class,
+                () -> gaugeService.findAll(
+                        1L,
+                        999L
                 )
         );
 
