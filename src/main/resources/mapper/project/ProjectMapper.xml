@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.hanttamhanttam.project.mapper.ProjectMapper">
+
+    <insert id="insert"
+            parameterType="com.hanttamhanttam.project.domain.Project"
+            useGeneratedKeys="true"
+            keyProperty="projectId">
+
+        INSERT INTO projects (
+        pattern_id,
+        size,
+        status,
+        pattern_gauge_stitch_count,
+        pattern_gauge_row_count,
+        pattern_gauge_width_cm,
+        pattern_gauge_height_cm,
+        start_date,
+        completed_date,
+        current_page,
+        created_at,
+        updated_at
+        )
+        VALUES (
+        #{patternId},
+        #{size},
+        #{status},
+        #{patternGaugeStitchCount},
+        #{patternGaugeRowCount},
+        #{patternGaugeWidthCm},
+        #{patternGaugeHeightCm},
+        #{startDate},
+        #{completedDate},
+        #{currentPage},
+        NOW(),
+        NOW()
+        )
+
+    </insert>
+
+</mapper>

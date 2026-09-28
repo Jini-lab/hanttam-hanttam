@@ -57,8 +57,27 @@ class JwtProviderTest {
         // given
         String token = jwtProvider.createAccessToken(1L);
 
+        String[] parts = token.split("\\.");
+
+        String signature = parts[2];
+
+        int index = signature.length() / 2;
+
+        char original = signature.charAt(index);
+        char replacement =
+                original == 'a' ? 'b' : 'a';
+
+        String tamperedSignature =
+                signature.substring(0, index)
+                        + replacement
+                        + signature.substring(index + 1);
+
         String tamperedToken =
-                token.substring(0, token.length() - 1) + "x";
+                parts[0]
+                        + "."
+                        + parts[1]
+                        + "."
+                        + tamperedSignature;
 
         // when
         boolean result = jwtProvider.validateToken(tamperedToken);
