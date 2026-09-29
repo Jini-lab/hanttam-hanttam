@@ -31,9 +31,7 @@ import static org.mockito.ArgumentMatchers.any;
 
 import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(GaugeController.class)
@@ -725,4 +723,136 @@ public class GaugeControllerTest {
         verifyNoInteractions(gaugeService);
     }
 
+    @Test
+    void delete_success() throws Exception {
+
+        // when & then
+        mockMvc.perform(
+                        delete("/api/projects/100/gauges/2")
+                                .with(
+                                        authentication(
+                                                new UsernamePasswordAuthenticationToken(
+                                                        1L,
+                                                        null,
+                                                        Collections.emptyList()
+                                                )
+                                        )
+                                )
+                )
+                .andExpect(status().isNoContent());
+
+        verify(gaugeService)
+                .delete(
+                        1L,
+                        100L,
+                        2L
+                );
+    }
+
+    @Test
+    void delete_gaugeNotFound_returns404()
+            throws Exception {
+
+        doThrow(new GaugeNotFoundException())
+                .when(gaugeService)
+                .delete(
+                        1L,
+                        100L,
+                        999L
+                );
+
+        mockMvc.perform(
+                        delete("/api/projects/100/gauges/999")
+                                .with(
+                                        authentication(
+                                                new UsernamePasswordAuthenticationToken(
+                                                        1L,
+                                                        null,
+                                                        Collections.emptyList()
+                                                )
+                                        )
+                                )
+                )
+                .andExpect(status().isNotFound())
+                .andExpect(
+                        jsonPath("$.message")
+                                .value("게이지를 찾을 수 없습니다.")
+                );
+    }
+
+    @Test
+    void delete_projectNotFound_returns404()
+            throws Exception {
+
+        doThrow(new ProjectNotFoundException())
+                .when(gaugeService)
+                .delete(
+                        1L,
+                        999L,
+                        2L
+                );
+
+        mockMvc.perform(
+                        delete("/api/projects/999/gauges/2")
+                                .with(
+                                        authentication(
+                                                new UsernamePasswordAuthenticationToken(
+                                                        1L,
+                                                        null,
+                                                        Collections.emptyList()
+                                                )
+                                        )
+                                )
+                )
+                .andExpect(status().isNotFound())
+                .andExpect(
+                        jsonPath("$.message")
+                                .value("프로젝트를 찾을 수 없습니다.")
+                );
+    }
+
+    @Test
+    void delete_completedProject_returns409()
+            throws Exception {
+
+        doThrow(new CompletedProjectModificationException())
+                .when(gaugeService)
+                .delete(
+                        1L,
+                        100L,
+                        2L
+                );
+
+        mockMvc.perform(
+                        delete("/api/projects/100/gauges/2")
+                                .with(
+                                        authentication(
+                                                new UsernamePasswordAuthenticationToken(
+                                                        1L,
+                                                        null,
+                                                        Collections.emptyList()
+                                                )
+                                        )
+                                )
+                )
+                .andExpect(status().isConflict())
+                .andExpect(
+                        jsonPath("$.message")
+                                .value(
+                                        "완성된 프로젝트는 수정할 수 없습니다."
+                                )
+                );
+    }
+
+    @Test
+    void delete_withoutAuthentication_returns401()
+            throws Exception {
+
+        mockMvc.perform(
+                        delete("/api/projects/100/gauges/2")
+                )
+                .andExpect(status().isUnauthorized());
+
+        verifyNoInteractions(gaugeService);
+    }
 }

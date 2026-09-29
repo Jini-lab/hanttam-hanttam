@@ -608,4 +608,113 @@ public class GaugeServiceTest {
         // Project 상태에서 이미 차단되어야 함
         verifyNoInteractions(gaugeMapper);
     }
+
+    @Test
+    void delete_success() {
+
+        Long userId = 1L;
+        Long projectId = 100L;
+        Long gaugeId = 2L;
+
+        ProjectDetailResponse project =
+                new ProjectDetailResponse();
+
+        project.setProjectId(projectId);
+        project.setStatus(ProjectStatus.IN_PROGRESS);
+
+        when(projectMapper.findById(
+                projectId,
+                userId
+        )).thenReturn(project);
+
+        Gauge gauge = new Gauge();
+        gauge.setGaugeId(gaugeId);
+        gauge.setProjectId(projectId);
+
+        when(gaugeMapper.findById(
+                gaugeId,
+                projectId
+        )).thenReturn(gauge);
+
+
+        // when
+        gaugeService.delete(
+                userId,
+                projectId,
+                gaugeId
+        );
+
+
+        // then
+        verify(gaugeMapper).delete(
+                gaugeId,
+                projectId
+        );
+
+        verify(projectMapper).touchUpdatedAt(
+                projectId,
+                userId
+        );
+    }
+
+    @Test
+    void delete_gaugeNotFound_throwsException() {
+
+        ProjectDetailResponse project =
+                new ProjectDetailResponse();
+
+        project.setProjectId(100L);
+        project.setStatus(ProjectStatus.IN_PROGRESS);
+
+        when(projectMapper.findById(
+                100L,
+                1L
+        )).thenReturn(project);
+
+        when(gaugeMapper.findById(
+                999L,
+                100L
+        )).thenReturn(null);
+
+        assertThrows(
+                GaugeNotFoundException.class,
+                () -> gaugeService.delete(
+                        1L,
+                        100L,
+                        999L
+                )
+        );
+
+        verify(gaugeMapper, never())
+                .delete(anyLong(), anyLong());
+
+        verify(projectMapper, never())
+                .touchUpdatedAt(anyLong(), anyLong());
+    }
+
+    @Test
+    void delete_completedProject_throwsException() {
+
+        ProjectDetailResponse project =
+                new ProjectDetailResponse();
+
+        project.setProjectId(100L);
+        project.setStatus(ProjectStatus.COMPLETED);
+
+        when(projectMapper.findById(
+                100L,
+                1L
+        )).thenReturn(project);
+
+        assertThrows(
+                CompletedProjectModificationException.class,
+                () -> gaugeService.delete(
+                        1L,
+                        100L,
+                        2L
+                )
+        );
+
+        verifyNoInteractions(gaugeMapper);
+    }
 }

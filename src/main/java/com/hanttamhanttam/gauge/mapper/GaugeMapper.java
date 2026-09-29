@@ -33,4 +33,9 @@ public interface GaugeMapper {
             @Param("projectId") Long projectId,
             @Param("request") GaugeUpdateRequest request
     );
+
+    int delete(
+            @Param("gaugeId") Long gaugeId,
+            @Param("projectId") Long projectId
+    );
 }

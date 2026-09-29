@@ -101,4 +101,23 @@ public class GaugeController {
 
         return ResponseEntity.ok(response);
     }
+
+    @DeleteMapping("/{gaugeId}")
+    public ResponseEntity<Void> delete(
+            Authentication authentication,
+            @PathVariable Long projectId,
+            @PathVariable Long gaugeId
+    ) {
+
+        Long userId =
+                (Long) authentication.getPrincipal();
+
+        gaugeService.delete(
+                userId,
+                projectId,
+                gaugeId
+        );
+
+        return ResponseEntity.noContent().build();
+    }
 }

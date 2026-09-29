@@ -146,4 +146,13 @@
 
     </update>
 
+    <delete id="delete">
+
+        DELETE FROM gauges
+
+        WHERE gauge_id = #{gaugeId}
+        AND project_id = #{projectId}
+
+    </delete>
+
 </mapper>

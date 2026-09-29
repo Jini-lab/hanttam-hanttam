@@ -204,4 +204,46 @@ public class GaugeService {
 
         return new GaugeResponse(updatedGauge);
     }
+
+    @Transactional
+    public void delete(
+            Long userId,
+            Long projectId,
+            Long gaugeId
+    ) {
+
+        ProjectDetailResponse project =
+                projectMapper.findById(
+                        projectId,
+                        userId
+                );
+
+        if (project == null) {
+            throw new ProjectNotFoundException();
+        }
+
+        if (project.getStatus() == ProjectStatus.COMPLETED) {
+            throw new CompletedProjectModificationException();
+        }
+
+        Gauge gauge =
+                gaugeMapper.findById(
+                        gaugeId,
+                        projectId
+                );
+
+        if (gauge == null) {
+            throw new GaugeNotFoundException();
+        }
+
+        gaugeMapper.delete(
+                gaugeId,
+                projectId
+        );
+
+        projectMapper.touchUpdatedAt(
+                projectId,
+                userId
+        );
+    }
 }
