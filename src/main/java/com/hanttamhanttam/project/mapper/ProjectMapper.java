@@ -38,4 +38,10 @@ public interface ProjectMapper {
             @Param("projectId") Long projectId,
             @Param("userId") Long userId
     );
+
+    int updateCurrentPage(
+            @Param("projectId") Long projectId,
+            @Param("userId") Long userId,
+            @Param("currentPage") Integer currentPage
+    );
 }

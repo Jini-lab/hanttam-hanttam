@@ -8,6 +8,7 @@ import com.hanttamhanttam.project.domain.Project;
 import com.hanttamhanttam.project.domain.ProjectStatus;
 import com.hanttamhanttam.project.dto.*;
 import com.hanttamhanttam.project.exception.CompletedProjectModificationException;
+import com.hanttamhanttam.project.exception.InvalidCurrentPageException;
 import com.hanttamhanttam.project.exception.InvalidProjectStatusException;
 import com.hanttamhanttam.project.exception.ProjectNotFoundException;
 import com.hanttamhanttam.project.service.ProjectService;
@@ -278,6 +279,7 @@ public class ProjectControllerTest {
         project.setPatternId(10L);
         project.setPatternName("Cable Sweater");
         project.setThumbnailPath("thumbnail.png");
+        project.setTotalPages(32);
         project.setSize("S");
         project.setStatus(ProjectStatus.PREPARING);
         project.setCurrentPage(1);
@@ -313,6 +315,10 @@ public class ProjectControllerTest {
                 .andExpect(
                         jsonPath("$.patternName")
                                 .value("Cable Sweater")
+                )
+                .andExpect(
+                        jsonPath("$.totalPages")
+                                .value(32)
                 )
                 .andExpect(
                         jsonPath("$.size")
@@ -387,6 +393,7 @@ public class ProjectControllerTest {
         response.setProjectId(100L);
         response.setPatternId(10L);
         response.setPatternName("Cable Sweater");
+        response.setTotalPages(32);
         response.setSize("M");
         response.setStatus(ProjectStatus.IN_PROGRESS);
         response.setPatternGaugeStitchCount(24);
@@ -581,6 +588,7 @@ public class ProjectControllerTest {
                 new ProjectDetailResponse();
 
         response.setProjectId(100L);
+        response.setTotalPages(32);
         response.setStatus(ProjectStatus.IN_PROGRESS);
         response.setStartDate(LocalDate.of(2026, 9, 28));
 
@@ -697,4 +705,203 @@ public class ProjectControllerTest {
         verifyNoInteractions(projectService);
     }
 
+    @Test
+    void updateCurrentPage_success() throws Exception {
+
+        // given
+        ProjectDetailResponse response =
+                new ProjectDetailResponse();
+
+        response.setProjectId(100L);
+        response.setStatus(ProjectStatus.IN_PROGRESS);
+        response.setCurrentPage(10);
+        response.setTotalPages(20);
+
+        when(projectService.updateCurrentPage(
+                eq(1L),
+                eq(100L),
+                any(ProjectCurrentPageUpdateRequest.class)
+        )).thenReturn(response);
+
+        String body = """
+            {
+              "currentPage": 10
+            }
+            """;
+
+
+        // when & then
+        mockMvc.perform(
+                        patch("/api/projects/100/current-page")
+                                .with(
+                                        authentication(
+                                                new UsernamePasswordAuthenticationToken(
+                                                        1L,
+                                                        null,
+                                                        Collections.emptyList()
+                                                )
+                                        )
+                                )
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(body)
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.projectId").value(100L))
+                .andExpect(jsonPath("$.currentPage").value(10))
+                .andExpect(jsonPath("$.totalPages").value(20));
+
+        verify(projectService).updateCurrentPage(
+                eq(1L),
+                eq(100L),
+                any(ProjectCurrentPageUpdateRequest.class)
+        );
+    }
+
+    @Test
+    void updateCurrentPage_zero_returns400()
+            throws Exception {
+
+        String body = """
+            {
+              "currentPage": 0
+            }
+            """;
+
+        mockMvc.perform(
+                        patch("/api/projects/100/current-page")
+                                .with(
+                                        authentication(
+                                                new UsernamePasswordAuthenticationToken(
+                                                        1L,
+                                                        null,
+                                                        Collections.emptyList()
+                                                )
+                                        )
+                                )
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(body)
+                )
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(projectService);
+    }
+
+    @Test
+    void updateCurrentPage_exceedsTotalPages_returns400()
+            throws Exception {
+
+        when(projectService.updateCurrentPage(
+                eq(1L),
+                eq(100L),
+                any(ProjectCurrentPageUpdateRequest.class)
+        )).thenThrow(
+                new InvalidCurrentPageException()
+        );
+
+        String body = """
+            {
+              "currentPage": 21
+            }
+            """;
+
+        mockMvc.perform(
+                        patch("/api/projects/100/current-page")
+                                .with(
+                                        authentication(
+                                                new UsernamePasswordAuthenticationToken(
+                                                        1L,
+                                                        null,
+                                                        Collections.emptyList()
+                                                )
+                                        )
+                                )
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(body)
+                )
+                .andExpect(status().isBadRequest())
+                .andExpect(
+                        jsonPath("$.message")
+                                .value(
+                                        "현재 페이지가 도안의 전체 페이지 범위를 벗어났습니다."
+                                )
+                );
+    }
+
+    @Test
+    void updateCurrentPage_projectNotFound_returns404()
+            throws Exception {
+
+        when(projectService.updateCurrentPage(
+                eq(1L),
+                eq(999L),
+                any(ProjectCurrentPageUpdateRequest.class)
+        )).thenThrow(
+                new ProjectNotFoundException()
+        );
+
+        String body = """
+            {
+              "currentPage": 10
+            }
+            """;
+
+        mockMvc.perform(
+                        patch("/api/projects/999/current-page")
+                                .with(
+                                        authentication(
+                                                new UsernamePasswordAuthenticationToken(
+                                                        1L,
+                                                        null,
+                                                        Collections.emptyList()
+                                                )
+                                        )
+                                )
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(body)
+                )
+                .andExpect(status().isNotFound())
+                .andExpect(
+                        jsonPath("$.message")
+                                .value("프로젝트를 찾을 수 없습니다.")
+                );
+    }
+
+    @Test
+    void updateCurrentPage_completedProject_returns409()
+            throws Exception {
+
+        when(projectService.updateCurrentPage(
+                eq(1L),
+                eq(100L),
+                any(ProjectCurrentPageUpdateRequest.class)
+        )).thenThrow(
+                new CompletedProjectModificationException()
+        );
+
+        String body = """
+            {
+              "currentPage": 10
+            }
+            """;
+
+        mockMvc.perform(
+                        patch("/api/projects/100/current-page")
+                                .with(
+                                        authentication(
+                                                new UsernamePasswordAuthenticationToken(
+                                                        1L,
+                                                        null,
+                                                        Collections.emptyList()
+                                                )
+                                        )
+                                )
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(body)
+                )
+                .andExpect(status().isConflict())
+                .andExpect(
+                        jsonPath("$.message")
+                                .value("완성된 프로젝트는 수정할 수 없습니다.")
+                );
+    }
 }

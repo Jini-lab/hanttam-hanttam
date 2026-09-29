@@ -6,6 +6,7 @@ import com.hanttamhanttam.gauge.exception.GaugeNotFoundException;
 import com.hanttamhanttam.pattern.exception.PatternNotFoundException;
 import com.hanttamhanttam.pattern.exception.PatternPdfNotFoundException;
 import com.hanttamhanttam.project.exception.CompletedProjectModificationException;
+import com.hanttamhanttam.project.exception.InvalidCurrentPageException;
 import com.hanttamhanttam.project.exception.InvalidProjectStatusException;
 import com.hanttamhanttam.project.exception.ProjectNotFoundException;
 import org.springframework.http.HttpStatus;
@@ -89,6 +90,16 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse(e.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidCurrentPageException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidCurrentPage(
+            InvalidCurrentPageException e
+    ) {
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
                 .body(new ErrorResponse(e.getMessage()));
     }
 }

@@ -7,6 +7,7 @@ import com.hanttamhanttam.project.domain.Project;
 import com.hanttamhanttam.project.domain.ProjectStatus;
 import com.hanttamhanttam.project.dto.*;
 import com.hanttamhanttam.project.exception.CompletedProjectModificationException;
+import com.hanttamhanttam.project.exception.InvalidCurrentPageException;
 import com.hanttamhanttam.project.exception.InvalidProjectStatusException;
 import com.hanttamhanttam.project.exception.ProjectNotFoundException;
 import com.hanttamhanttam.project.mapper.ProjectMapper;
@@ -161,6 +162,43 @@ public class ProjectService {
         projectMapper.start(
                 projectId,
                 userId
+        );
+
+        return projectMapper.findById(
+                projectId,
+                userId
+        );
+    }
+
+    @Transactional
+    public ProjectDetailResponse updateCurrentPage(
+            Long userId,
+            Long projectId,
+            ProjectCurrentPageUpdateRequest request
+    ) {
+
+        ProjectDetailResponse project =
+                projectMapper.findById(
+                        projectId,
+                        userId
+                );
+
+        if (project == null) {
+            throw new ProjectNotFoundException();
+        }
+
+        if (project.getStatus() == ProjectStatus.COMPLETED) {
+            throw new CompletedProjectModificationException();
+        }
+
+        if (request.getCurrentPage() > project.getTotalPages()) {
+            throw new InvalidCurrentPageException();
+        }
+
+        projectMapper.updateCurrentPage(
+                projectId,
+                userId,
+                request.getCurrentPage()
         );
 
         return projectMapper.findById(

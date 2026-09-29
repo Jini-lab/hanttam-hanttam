@@ -7,6 +7,7 @@ import com.hanttamhanttam.project.domain.Project;
 import com.hanttamhanttam.project.domain.ProjectStatus;
 import com.hanttamhanttam.project.dto.*;
 import com.hanttamhanttam.project.exception.CompletedProjectModificationException;
+import com.hanttamhanttam.project.exception.InvalidCurrentPageException;
 import com.hanttamhanttam.project.exception.InvalidProjectStatusException;
 import com.hanttamhanttam.project.exception.ProjectNotFoundException;
 import com.hanttamhanttam.project.mapper.ProjectMapper;
@@ -562,5 +563,145 @@ public class ProjectServiceTest {
 
         verify(projectMapper, never())
                 .start(anyLong(), anyLong());
+    }
+
+    @Test
+    void updateCurrentPage_success() {
+
+        // given
+        Long userId = 1L;
+        Long projectId = 100L;
+
+        ProjectDetailResponse before =
+                new ProjectDetailResponse();
+
+        before.setProjectId(projectId);
+        before.setStatus(ProjectStatus.IN_PROGRESS);
+        before.setCurrentPage(3);
+        before.setTotalPages(20);
+
+        ProjectDetailResponse after =
+                new ProjectDetailResponse();
+
+        after.setProjectId(projectId);
+        after.setStatus(ProjectStatus.IN_PROGRESS);
+        after.setCurrentPage(10);
+        after.setTotalPages(20);
+
+        when(projectMapper.findById(
+                projectId,
+                userId
+        ))
+                .thenReturn(before)
+                .thenReturn(after);
+
+        ProjectCurrentPageUpdateRequest request =
+                new ProjectCurrentPageUpdateRequest();
+
+        request.setCurrentPage(10);
+
+
+        // when
+        ProjectDetailResponse result =
+                projectService.updateCurrentPage(
+                        userId,
+                        projectId,
+                        request
+                );
+
+
+        // then
+        assertEquals(
+                10,
+                result.getCurrentPage()
+        );
+
+        verify(projectMapper)
+                .updateCurrentPage(
+                        projectId,
+                        userId,
+                        10
+                );
+
+        verify(projectMapper, times(2))
+                .findById(projectId, userId);
+    }
+
+    @Test
+    void updateCurrentPage_exceedsTotalPages_throwsException() {
+
+        Long userId = 1L;
+        Long projectId = 100L;
+
+        ProjectDetailResponse project =
+                new ProjectDetailResponse();
+
+        project.setProjectId(projectId);
+        project.setStatus(ProjectStatus.IN_PROGRESS);
+        project.setCurrentPage(3);
+        project.setTotalPages(20);
+
+        when(projectMapper.findById(
+                projectId,
+                userId
+        )).thenReturn(project);
+
+        ProjectCurrentPageUpdateRequest request =
+                new ProjectCurrentPageUpdateRequest();
+
+        request.setCurrentPage(21);
+
+        assertThrows(
+                InvalidCurrentPageException.class,
+                () -> projectService.updateCurrentPage(
+                        userId,
+                        projectId,
+                        request
+                )
+        );
+
+        verify(projectMapper, never())
+                .updateCurrentPage(
+                        anyLong(),
+                        anyLong(),
+                        anyInt()
+                );
+    }
+
+    @Test
+    void updateCurrentPage_completedProject_throwsException() {
+
+        ProjectDetailResponse project =
+                new ProjectDetailResponse();
+
+        project.setProjectId(100L);
+        project.setStatus(ProjectStatus.COMPLETED);
+        project.setTotalPages(20);
+
+        when(projectMapper.findById(
+                100L,
+                1L
+        )).thenReturn(project);
+
+        ProjectCurrentPageUpdateRequest request =
+                new ProjectCurrentPageUpdateRequest();
+
+        request.setCurrentPage(10);
+
+        assertThrows(
+                CompletedProjectModificationException.class,
+                () -> projectService.updateCurrentPage(
+                        1L,
+                        100L,
+                        request
+                )
+        );
+
+        verify(projectMapper, never())
+                .updateCurrentPage(
+                        anyLong(),
+                        anyLong(),
+                        anyInt()
+                );
     }
 }

@@ -100,4 +100,23 @@ public class ProjectController {
 
         return ResponseEntity.ok(response);
     }
+
+    @PatchMapping("/{projectId}/current-page")
+    public ResponseEntity<ProjectDetailResponse> updateCurrentPage(
+            Authentication authentication,
+            @PathVariable Long projectId,
+            @Valid @RequestBody ProjectCurrentPageUpdateRequest request
+    ) {
+
+        Long userId = (Long) authentication.getPrincipal();
+
+        ProjectDetailResponse response =
+                projectService.updateCurrentPage(
+                        userId,
+                        projectId,
+                        request
+                );
+
+        return ResponseEntity.ok(response);
+    }
 }

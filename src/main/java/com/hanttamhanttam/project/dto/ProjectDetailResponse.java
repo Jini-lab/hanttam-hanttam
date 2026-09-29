@@ -17,6 +17,7 @@ public class ProjectDetailResponse {
 
     private String patternName;
     private String thumbnailPath;
+    private Integer totalPages;
 
     private String size;
     private ProjectStatus status;
