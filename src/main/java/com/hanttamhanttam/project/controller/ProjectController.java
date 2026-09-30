@@ -119,4 +119,21 @@ public class ProjectController {
 
         return ResponseEntity.ok(response);
     }
+
+    @DeleteMapping("/{projectId}")
+    public ResponseEntity<Void> delete(
+            Authentication authentication,
+            @PathVariable Long projectId
+    ) {
+
+        Long userId =
+                (Long) authentication.getPrincipal();
+
+        projectService.delete(
+                userId,
+                projectId
+        );
+
+        return ResponseEntity.noContent().build();
+    }
 }

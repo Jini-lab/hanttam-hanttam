@@ -704,4 +704,105 @@ public class ProjectServiceTest {
                         anyInt()
                 );
     }
+
+    @Test
+    void delete_success() {
+
+        // given
+        Long userId = 1L;
+        Long projectId = 100L;
+
+        ProjectDetailResponse project =
+                new ProjectDetailResponse();
+
+        project.setProjectId(projectId);
+        project.setStatus(ProjectStatus.IN_PROGRESS);
+
+        when(projectMapper.findById(
+                projectId,
+                userId
+        )).thenReturn(project);
+
+        when(projectMapper.softDelete(
+                projectId,
+                userId
+        )).thenReturn(1);
+
+
+        // when
+        projectService.delete(
+                userId,
+                projectId
+        );
+
+
+        // then
+        verify(projectMapper)
+                .softDelete(
+                        projectId,
+                        userId
+                );
+    }
+
+    @Test
+    void delete_notFound_throwsException() {
+
+        when(projectMapper.findById(
+                999L,
+                1L
+        )).thenReturn(null);
+
+        assertThrows(
+                ProjectNotFoundException.class,
+                () -> projectService.delete(
+                        1L,
+                        999L
+                )
+        );
+
+        verify(projectMapper, never())
+                .softDelete(
+                        anyLong(),
+                        anyLong()
+                );
+    }
+
+    @Test
+    void delete_completedProject_success() {
+
+        // given
+        Long userId = 1L;
+        Long projectId = 100L;
+
+        ProjectDetailResponse project =
+                new ProjectDetailResponse();
+
+        project.setProjectId(projectId);
+        project.setStatus(ProjectStatus.COMPLETED);
+
+        when(projectMapper.findById(
+                projectId,
+                userId
+        )).thenReturn(project);
+
+        when(projectMapper.softDelete(
+                projectId,
+                userId
+        )).thenReturn(1);
+
+
+        // when
+        projectService.delete(
+                userId,
+                projectId
+        );
+
+
+        // then
+        verify(projectMapper)
+                .softDelete(
+                        projectId,
+                        userId
+                );
+    }
 }

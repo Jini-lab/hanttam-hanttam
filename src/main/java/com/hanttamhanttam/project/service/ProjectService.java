@@ -206,4 +206,26 @@ public class ProjectService {
                 userId
         );
     }
+
+    @Transactional
+    public void delete(
+            Long userId,
+            Long projectId
+    ) {
+
+        ProjectDetailResponse project =
+                projectMapper.findById(
+                        projectId,
+                        userId
+                );
+
+        if (project == null) {
+            throw new ProjectNotFoundException();
+        }
+
+        projectMapper.softDelete(
+                projectId,
+                userId
+        );
+    }
 }

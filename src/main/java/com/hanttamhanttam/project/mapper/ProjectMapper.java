@@ -44,4 +44,9 @@ public interface ProjectMapper {
             @Param("userId") Long userId,
             @Param("currentPage") Integer currentPage
     );
+
+    int softDelete(
+            @Param("projectId") Long projectId,
+            @Param("userId") Long userId
+    );
 }

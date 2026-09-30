@@ -196,4 +196,21 @@
 
     </update>
 
+    <update id="softDelete">
+
+        UPDATE projects p
+
+        INNER JOIN patterns pt
+        ON p.pattern_id = pt.pattern_id
+
+        SET
+        p.deleted_at = NOW(),
+        p.updated_at = NOW()
+
+        WHERE p.project_id = #{projectId}
+        AND pt.user_id = #{userId}
+        AND p.deleted_at IS NULL
+
+    </update>
+
 </mapper>
