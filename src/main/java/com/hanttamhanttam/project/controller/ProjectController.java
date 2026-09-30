@@ -136,4 +136,21 @@ public class ProjectController {
 
         return ResponseEntity.noContent().build();
     }
+
+    @PatchMapping("/{projectId}/complete")
+    public ResponseEntity<ProjectDetailResponse> complete(
+            Authentication authentication,
+            @PathVariable Long projectId
+    ) {
+
+        Long userId = (Long) authentication.getPrincipal();
+
+        ProjectDetailResponse response =
+                projectService.complete(
+                        userId,
+                        projectId
+                );
+
+        return ResponseEntity.ok(response);
+    }
 }

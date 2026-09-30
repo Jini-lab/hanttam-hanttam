@@ -49,4 +49,9 @@ public interface ProjectMapper {
             @Param("projectId") Long projectId,
             @Param("userId") Long userId
     );
+
+    int complete(
+            @Param("projectId") Long projectId,
+            @Param("userId") Long userId
+    );
 }

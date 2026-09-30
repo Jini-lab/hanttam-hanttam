@@ -970,4 +970,169 @@ public class ProjectControllerTest {
 
         verifyNoInteractions(projectService);
     }
+
+    @Test
+    void complete_success() throws Exception {
+
+        // given
+        ProjectDetailResponse response =
+                new ProjectDetailResponse();
+
+        response.setProjectId(100L);
+        response.setStatus(ProjectStatus.COMPLETED);
+        response.setCompletedDate(
+                LocalDate.of(2026, 9, 30)
+        );
+
+        when(projectService.complete(
+                1L,
+                100L
+        )).thenReturn(response);
+
+
+        // when & then
+        mockMvc.perform(
+                        patch("/api/projects/100/complete")
+                                .with(
+                                        authentication(
+                                                new UsernamePasswordAuthenticationToken(
+                                                        1L,
+                                                        null,
+                                                        Collections.emptyList()
+                                                )
+                                        )
+                                )
+                )
+                .andExpect(status().isOk())
+                .andExpect(
+                        jsonPath("$.projectId")
+                                .value(100L)
+                )
+                .andExpect(
+                        jsonPath("$.status")
+                                .value("COMPLETED")
+                )
+                .andExpect(
+                        jsonPath("$.completedDate")
+                                .value("2026-09-30")
+                );
+
+        verify(projectService)
+                .complete(
+                        1L,
+                        100L
+                );
+    }
+
+    @Test
+    void complete_projectNotFound_returns404()
+            throws Exception {
+
+        when(projectService.complete(
+                1L,
+                999L
+        )).thenThrow(
+                new ProjectNotFoundException()
+        );
+
+        mockMvc.perform(
+                        patch("/api/projects/999/complete")
+                                .with(
+                                        authentication(
+                                                new UsernamePasswordAuthenticationToken(
+                                                        1L,
+                                                        null,
+                                                        Collections.emptyList()
+                                                )
+                                        )
+                                )
+                )
+                .andExpect(status().isNotFound())
+                .andExpect(
+                        jsonPath("$.message")
+                                .value(
+                                        "프로젝트를 찾을 수 없습니다."
+                                )
+                );
+    }
+
+    @Test
+    void complete_preparingProject_returns409()
+            throws Exception {
+
+        when(projectService.complete(
+                1L,
+                100L
+        )).thenThrow(
+                new InvalidProjectStatusException(
+                        "진행 중인 프로젝트만 완성할 수 있습니다."
+                )
+        );
+
+        mockMvc.perform(
+                        patch("/api/projects/100/complete")
+                                .with(
+                                        authentication(
+                                                new UsernamePasswordAuthenticationToken(
+                                                        1L,
+                                                        null,
+                                                        Collections.emptyList()
+                                                )
+                                        )
+                                )
+                )
+                .andExpect(status().isConflict())
+                .andExpect(
+                        jsonPath("$.message")
+                                .value(
+                                        "진행 중인 프로젝트만 완성할 수 있습니다."
+                                )
+                );
+    }
+
+    @Test
+    void complete_alreadyCompleted_returns409()
+            throws Exception {
+
+        when(projectService.complete(
+                1L,
+                100L
+        )).thenThrow(
+                new InvalidProjectStatusException(
+                        "진행 중인 프로젝트만 완성할 수 있습니다."
+                )
+        );
+
+        mockMvc.perform(
+                        patch("/api/projects/100/complete")
+                                .with(
+                                        authentication(
+                                                new UsernamePasswordAuthenticationToken(
+                                                        1L,
+                                                        null,
+                                                        Collections.emptyList()
+                                                )
+                                        )
+                                )
+                )
+                .andExpect(status().isConflict())
+                .andExpect(
+                        jsonPath("$.message")
+                                .value(
+                                        "진행 중인 프로젝트만 완성할 수 있습니다."
+                                )
+                );
+    }
+
+    @Test
+    void complete_withoutAuthentication_returns401()
+            throws Exception {
+
+        mockMvc.perform(
+                        patch("/api/projects/100/complete")
+                )
+                .andExpect(status().isUnauthorized());
+
+        verifyNoInteractions(projectService);
+    }
 }

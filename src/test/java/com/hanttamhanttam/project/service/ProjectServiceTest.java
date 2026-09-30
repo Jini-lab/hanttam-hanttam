@@ -11,6 +11,8 @@ import com.hanttamhanttam.project.exception.InvalidCurrentPageException;
 import com.hanttamhanttam.project.exception.InvalidProjectStatusException;
 import com.hanttamhanttam.project.exception.ProjectNotFoundException;
 import com.hanttamhanttam.project.mapper.ProjectMapper;
+import com.hanttamhanttam.review.domain.Review;
+import com.hanttamhanttam.review.mapper.ReviewMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -34,6 +36,9 @@ public class ProjectServiceTest {
 
     @Mock
     private PatternMapper patternMapper;
+
+    @Mock
+    private ReviewMapper reviewMapper;
 
     @InjectMocks
     private ProjectService projectService;
@@ -804,5 +809,119 @@ public class ProjectServiceTest {
                         projectId,
                         userId
                 );
+    }
+
+    @Test
+    void complete_success() {
+
+        // given
+        Long userId = 1L;
+        Long projectId = 100L;
+
+        ProjectDetailResponse before =
+                new ProjectDetailResponse();
+
+        before.setProjectId(projectId);
+        before.setStatus(ProjectStatus.IN_PROGRESS);
+
+        ProjectDetailResponse after =
+                new ProjectDetailResponse();
+
+        after.setProjectId(projectId);
+        after.setStatus(ProjectStatus.COMPLETED);
+        after.setCompletedDate(LocalDate.now());
+
+        when(projectMapper.findById(
+                projectId,
+                userId
+        ))
+                .thenReturn(before)
+                .thenReturn(after);
+
+        when(projectMapper.complete(
+                projectId,
+                userId
+        )).thenReturn(1);
+
+        doAnswer(invocation -> {
+
+            Review review = invocation.getArgument(0);
+            review.setReviewId(1L);
+
+            return null;
+
+        }).when(reviewMapper)
+                .insert(any(Review.class));
+
+
+        // when
+        ProjectDetailResponse result =
+                projectService.complete(
+                        userId,
+                        projectId
+                );
+
+
+        // then
+        assertEquals(
+                ProjectStatus.COMPLETED,
+                result.getStatus()
+        );
+
+        assertEquals(
+                LocalDate.now(),
+                result.getCompletedDate()
+        );
+
+        verify(projectMapper)
+                .complete(projectId, userId);
+
+        ArgumentCaptor<Review> captor =
+                ArgumentCaptor.forClass(Review.class);
+
+        verify(reviewMapper)
+                .insert(captor.capture());
+
+        Review savedReview = captor.getValue();
+
+        assertEquals(
+                projectId,
+                savedReview.getProjectId()
+        );
+
+        assertNull(savedReview.getModifications());
+        assertNull(savedReview.getGoodPoints());
+        assertNull(savedReview.getBadPoints());
+
+        verify(projectMapper, times(2))
+                .findById(projectId, userId);
+    }
+
+    @Test
+    void complete_preparingProject_throwsException() {
+
+        ProjectDetailResponse project =
+                new ProjectDetailResponse();
+
+        project.setProjectId(100L);
+        project.setStatus(ProjectStatus.PREPARING);
+
+        when(projectMapper.findById(
+                100L,
+                1L
+        )).thenReturn(project);
+
+        assertThrows(
+                InvalidProjectStatusException.class,
+                () -> projectService.complete(
+                        1L,
+                        100L
+                )
+        );
+
+        verify(projectMapper, never())
+                .complete(anyLong(), anyLong());
+
+        verifyNoInteractions(reviewMapper);
     }
 }

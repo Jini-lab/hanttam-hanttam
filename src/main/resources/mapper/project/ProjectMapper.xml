@@ -213,4 +213,23 @@
 
     </update>
 
+    <update id="complete">
+
+        UPDATE projects p
+
+        INNER JOIN patterns pt
+        ON p.pattern_id = pt.pattern_id
+
+        SET
+        p.status = 'COMPLETED',
+        p.completed_date = CURDATE(),
+        p.updated_at = NOW()
+
+        WHERE p.project_id = #{projectId}
+        AND pt.user_id = #{userId}
+        AND p.deleted_at IS NULL
+        AND p.status = 'IN_PROGRESS'
+
+    </update>
+
 </mapper>

@@ -11,6 +11,8 @@ import com.hanttamhanttam.project.exception.InvalidCurrentPageException;
 import com.hanttamhanttam.project.exception.InvalidProjectStatusException;
 import com.hanttamhanttam.project.exception.ProjectNotFoundException;
 import com.hanttamhanttam.project.mapper.ProjectMapper;
+import com.hanttamhanttam.review.domain.Review;
+import com.hanttamhanttam.review.mapper.ReviewMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +25,7 @@ public class ProjectService {
 
     private final ProjectMapper projectMapper;
     private final PatternMapper patternMapper;
+    private final ReviewMapper reviewMapper;
 
     @Transactional
     public ProjectResponse create(
@@ -224,6 +227,44 @@ public class ProjectService {
         }
 
         projectMapper.softDelete(
+                projectId,
+                userId
+        );
+    }
+
+    @Transactional
+    public ProjectDetailResponse complete(
+            Long userId,
+            Long projectId
+    ) {
+
+        ProjectDetailResponse project =
+                projectMapper.findById(
+                        projectId,
+                        userId
+                );
+
+        if (project == null) {
+            throw new ProjectNotFoundException();
+        }
+
+        if (project.getStatus() != ProjectStatus.IN_PROGRESS) {
+            throw new InvalidProjectStatusException(
+                    "진행 중인 프로젝트만 완성할 수 있습니다."
+            );
+        }
+
+        projectMapper.complete(
+                projectId,
+                userId
+        );
+
+        Review review = new Review();
+        review.setProjectId(projectId);
+
+        reviewMapper.insert(review);
+
+        return projectMapper.findById(
                 projectId,
                 userId
         );
