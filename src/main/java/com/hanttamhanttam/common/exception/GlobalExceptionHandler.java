@@ -9,6 +9,7 @@ import com.hanttamhanttam.project.exception.CompletedProjectModificationExceptio
 import com.hanttamhanttam.project.exception.InvalidCurrentPageException;
 import com.hanttamhanttam.project.exception.InvalidProjectStatusException;
 import com.hanttamhanttam.project.exception.ProjectNotFoundException;
+import com.hanttamhanttam.review.exception.ReviewNotFoundException;
 import com.hanttamhanttam.worklog.exception.InvalidWorkLogContentException;
 import com.hanttamhanttam.worklog.exception.InvalidWorkLogPageException;
 import com.hanttamhanttam.worklog.exception.WorkLogNotFoundException;
@@ -133,6 +134,15 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(e.getMessage()));
+    }
+
+    @ExceptionHandler(ReviewNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleReviewNotFound(
+            ReviewNotFoundException e
+    ) {
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
                 .body(new ErrorResponse(e.getMessage()));
     }
 }

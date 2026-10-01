@@ -29,5 +29,35 @@
 
     </insert>
 
+    <select id="findByProjectId"
+            resultType="com.hanttamhanttam.review.domain.Review">
+
+        SELECT
+        review_id AS reviewId,
+        project_id AS projectId,
+        modifications,
+        good_points AS goodPoints,
+        bad_points AS badPoints,
+        created_at AS createdAt,
+        updated_at AS updatedAt
+        FROM reviews
+        WHERE project_id = #{projectId}
+
+    </select>
+
+    <update id="update">
+
+        UPDATE reviews
+
+        SET
+        modifications = #{modifications},
+        good_points = #{goodPoints},
+        bad_points = #{badPoints},
+        updated_at = NOW()
+
+        WHERE review_id = #{reviewId}
+        AND project_id = #{projectId}
+
+    </update>
 
 </mapper>

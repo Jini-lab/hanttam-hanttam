@@ -9,4 +9,7 @@ public interface ReviewMapper {
 
     void insert(Review review);
 
+    Review findByProjectId(Long projectId);
+
+    int update(Review review);
 }
