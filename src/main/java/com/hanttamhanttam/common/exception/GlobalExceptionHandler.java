@@ -9,6 +9,7 @@ import com.hanttamhanttam.project.exception.CompletedProjectModificationExceptio
 import com.hanttamhanttam.project.exception.InvalidCurrentPageException;
 import com.hanttamhanttam.project.exception.InvalidProjectStatusException;
 import com.hanttamhanttam.project.exception.ProjectNotFoundException;
+import com.hanttamhanttam.worklog.exception.InvalidWorkLogPageException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -96,6 +97,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(InvalidCurrentPageException.class)
     public ResponseEntity<ErrorResponse> handleInvalidCurrentPage(
             InvalidCurrentPageException e
+    ) {
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(e.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidWorkLogPageException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidWorkLogPage(
+            InvalidWorkLogPageException e
     ) {
 
         return ResponseEntity

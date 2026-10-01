@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.hanttamhanttam.worklog.mapper.WorkLogMapper">
+
+    <insert id="insert"
+            parameterType="com.hanttamhanttam.worklog.domain.WorkLog"
+            useGeneratedKeys="true"
+            keyProperty="workLogId">
+
+        INSERT INTO work_logs (
+        project_id,
+        pattern_page,
+        content,
+        created_at,
+        updated_at
+        )
+        VALUES (
+        #{projectId},
+        #{patternPage},
+        #{content},
+        NOW(),
+        NOW()
+        )
+
+    </insert>
+
+    <select id="findAllByProjectId"
+            resultType="com.hanttamhanttam.worklog.domain.WorkLog">
+
+        SELECT
+        work_log_id AS workLogId,
+        project_id AS projectId,
+        pattern_page AS patternPage,
+        content,
+        created_at AS createdAt,
+        updated_at AS updatedAt
+
+        FROM work_logs
+
+        WHERE project_id = #{projectId}
+
+        ORDER BY created_at ASC, work_log_id ASC
+
+    </select>
+</mapper>
