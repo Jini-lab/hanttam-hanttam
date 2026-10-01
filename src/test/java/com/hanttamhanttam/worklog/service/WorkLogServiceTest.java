@@ -8,7 +8,9 @@ import com.hanttamhanttam.project.mapper.ProjectMapper;
 import com.hanttamhanttam.worklog.domain.WorkLog;
 import com.hanttamhanttam.worklog.dto.WorkLogCreateRequest;
 import com.hanttamhanttam.worklog.dto.WorkLogResponse;
+import com.hanttamhanttam.worklog.dto.WorkLogUpdateRequest;
 import com.hanttamhanttam.worklog.exception.InvalidWorkLogPageException;
+import com.hanttamhanttam.worklog.exception.WorkLogNotFoundException;
 import com.hanttamhanttam.worklog.mapper.WorkLogMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -324,5 +326,316 @@ public class WorkLogServiceTest {
 
         verify(workLogMapper)
                 .findAllByProjectId(projectId);
+    }
+
+    @Test
+    void update_contentOnly_success() {
+
+        // given
+        Long userId = 1L;
+        Long projectId = 100L;
+        Long workLogId = 10L;
+
+        ProjectDetailResponse project =
+                new ProjectDetailResponse();
+
+        project.setProjectId(projectId);
+        project.setStatus(ProjectStatus.IN_PROGRESS);
+        project.setTotalPages(20);
+
+        when(projectMapper.findById(
+                projectId,
+                userId
+        )).thenReturn(project);
+
+        WorkLog workLog = new WorkLog();
+
+        workLog.setWorkLogId(workLogId);
+        workLog.setProjectId(projectId);
+        workLog.setPatternPage(7);
+        workLog.setContent("기존 기록");
+
+        when(workLogMapper.findById(
+                workLogId,
+                projectId
+        )).thenReturn(workLog);
+
+        WorkLogUpdateRequest request =
+                new WorkLogUpdateRequest();
+
+        request.setContent("목 부분에서 2코 줄임");
+
+
+        // when
+        WorkLogResponse result =
+                workLogService.update(
+                        userId,
+                        projectId,
+                        workLogId,
+                        request
+                );
+
+
+        // then
+        assertEquals(
+                7,
+                result.getPatternPage()
+        );
+
+        assertEquals(
+                "목 부분에서 2코 줄임",
+                result.getContent()
+        );
+
+        verify(workLogMapper)
+                .update(workLog);
+
+        verify(projectMapper)
+                .touchUpdatedAt(
+                        projectId,
+                        userId
+                );
+    }
+
+    @Test
+    void update_patternPageOnly_success() {
+
+        ProjectDetailResponse project =
+                new ProjectDetailResponse();
+
+        project.setProjectId(100L);
+        project.setStatus(ProjectStatus.IN_PROGRESS);
+        project.setTotalPages(20);
+
+        when(projectMapper.findById(
+                100L,
+                1L
+        )).thenReturn(project);
+
+        WorkLog workLog = new WorkLog();
+
+        workLog.setWorkLogId(10L);
+        workLog.setProjectId(100L);
+        workLog.setPatternPage(7);
+        workLog.setContent("기존 기록");
+
+        when(workLogMapper.findById(
+                10L,
+                100L
+        )).thenReturn(workLog);
+
+        WorkLogUpdateRequest request =
+                new WorkLogUpdateRequest();
+
+        request.setPatternPage(9);
+
+
+        WorkLogResponse result =
+                workLogService.update(
+                        1L,
+                        100L,
+                        10L,
+                        request
+                );
+
+
+        assertEquals(9, result.getPatternPage());
+        assertEquals("기존 기록", result.getContent());
+
+        verify(workLogMapper)
+                .update(workLog);
+    }
+
+    @Test
+    void update_completedProject_success() {
+
+        ProjectDetailResponse project =
+                new ProjectDetailResponse();
+
+        project.setProjectId(100L);
+        project.setStatus(ProjectStatus.COMPLETED);
+        project.setTotalPages(20);
+
+        when(projectMapper.findById(
+                100L,
+                1L
+        )).thenReturn(project);
+
+        WorkLog workLog = new WorkLog();
+
+        workLog.setWorkLogId(10L);
+        workLog.setProjectId(100L);
+        workLog.setPatternPage(7);
+        workLog.setContent("기존 기록");
+
+        when(workLogMapper.findById(
+                10L,
+                100L
+        )).thenReturn(workLog);
+
+        WorkLogUpdateRequest request =
+                new WorkLogUpdateRequest();
+
+        request.setContent("완성 후 기록 내용 정리");
+
+
+        WorkLogResponse result =
+                workLogService.update(
+                        1L,
+                        100L,
+                        10L,
+                        request
+                );
+
+
+        assertEquals(
+                "완성 후 기록 내용 정리",
+                result.getContent()
+        );
+
+        verify(workLogMapper)
+                .update(workLog);
+
+        verify(projectMapper)
+                .touchUpdatedAt(
+                        100L,
+                        1L
+                );
+    }
+
+    @Test
+    void delete_success() {
+
+        // given
+        Long userId = 1L;
+        Long projectId = 100L;
+        Long workLogId = 10L;
+
+        ProjectDetailResponse project =
+                new ProjectDetailResponse();
+
+        project.setProjectId(projectId);
+        project.setStatus(ProjectStatus.IN_PROGRESS);
+
+        when(projectMapper.findById(
+                projectId,
+                userId
+        )).thenReturn(project);
+
+        WorkLog workLog = new WorkLog();
+        workLog.setWorkLogId(workLogId);
+        workLog.setProjectId(projectId);
+
+        when(workLogMapper.findById(
+                workLogId,
+                projectId
+        )).thenReturn(workLog);
+
+
+        // when
+        workLogService.delete(
+                userId,
+                projectId,
+                workLogId
+        );
+
+
+        // then
+        verify(workLogMapper)
+                .delete(
+                        workLogId,
+                        projectId
+                );
+
+        verify(projectMapper)
+                .touchUpdatedAt(
+                        projectId,
+                        userId
+                );
+    }
+
+    @Test
+    void delete_completedProject_success() {
+
+        // given
+        ProjectDetailResponse project =
+                new ProjectDetailResponse();
+
+        project.setProjectId(100L);
+        project.setStatus(ProjectStatus.COMPLETED);
+
+        when(projectMapper.findById(
+                100L,
+                1L
+        )).thenReturn(project);
+
+        WorkLog workLog = new WorkLog();
+        workLog.setWorkLogId(10L);
+        workLog.setProjectId(100L);
+
+        when(workLogMapper.findById(
+                10L,
+                100L
+        )).thenReturn(workLog);
+
+
+        // when
+        workLogService.delete(
+                1L,
+                100L,
+                10L
+        );
+
+
+        // then
+        verify(workLogMapper)
+                .delete(
+                        10L,
+                        100L
+                );
+
+        verify(projectMapper)
+                .touchUpdatedAt(
+                        100L,
+                        1L
+                );
+    }
+
+    @Test
+    void delete_workLogNotFound_throwsException() {
+
+        ProjectDetailResponse project =
+                new ProjectDetailResponse();
+
+        project.setProjectId(100L);
+
+        when(projectMapper.findById(
+                100L,
+                1L
+        )).thenReturn(project);
+
+        when(workLogMapper.findById(
+                999L,
+                100L
+        )).thenReturn(null);
+
+
+        assertThrows(
+                WorkLogNotFoundException.class,
+                () -> workLogService.delete(
+                        1L,
+                        100L,
+                        999L
+                )
+        );
+
+        verify(workLogMapper, never())
+                .delete(anyLong(), anyLong());
+
+        verify(projectMapper, never())
+                .touchUpdatedAt(
+                        anyLong(),
+                        anyLong()
+                );
     }
 }

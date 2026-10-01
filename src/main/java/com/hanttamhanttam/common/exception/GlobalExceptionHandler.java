@@ -9,7 +9,9 @@ import com.hanttamhanttam.project.exception.CompletedProjectModificationExceptio
 import com.hanttamhanttam.project.exception.InvalidCurrentPageException;
 import com.hanttamhanttam.project.exception.InvalidProjectStatusException;
 import com.hanttamhanttam.project.exception.ProjectNotFoundException;
+import com.hanttamhanttam.worklog.exception.InvalidWorkLogContentException;
 import com.hanttamhanttam.worklog.exception.InvalidWorkLogPageException;
+import com.hanttamhanttam.worklog.exception.WorkLogNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -107,6 +109,26 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(InvalidWorkLogPageException.class)
     public ResponseEntity<ErrorResponse> handleInvalidWorkLogPage(
             InvalidWorkLogPageException e
+    ) {
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(e.getMessage()));
+    }
+
+    @ExceptionHandler(WorkLogNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleWorkLogNotFound(
+            WorkLogNotFoundException e
+    ) {
+
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse(e.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidWorkLogContentException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidWorkLogContent(
+            InvalidWorkLogContentException e
     ) {
 
         return ResponseEntity

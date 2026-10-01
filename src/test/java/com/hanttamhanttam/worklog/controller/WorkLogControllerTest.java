@@ -9,7 +9,10 @@ import com.hanttamhanttam.project.exception.ProjectNotFoundException;
 import com.hanttamhanttam.worklog.domain.WorkLog;
 import com.hanttamhanttam.worklog.dto.WorkLogCreateRequest;
 import com.hanttamhanttam.worklog.dto.WorkLogResponse;
+import com.hanttamhanttam.worklog.dto.WorkLogUpdateRequest;
+import com.hanttamhanttam.worklog.exception.InvalidWorkLogContentException;
 import com.hanttamhanttam.worklog.exception.InvalidWorkLogPageException;
+import com.hanttamhanttam.worklog.exception.WorkLogNotFoundException;
 import com.hanttamhanttam.worklog.service.WorkLogService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,7 +35,8 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 
 @WebMvcTest(WorkLogController.class)
 @Import({
@@ -431,4 +435,346 @@ public class WorkLogControllerTest {
 
         verifyNoInteractions(workLogService);
     }
+
+    @Test
+    void update_success() throws Exception {
+
+        // given
+        WorkLog workLog = new WorkLog();
+
+        workLog.setWorkLogId(2L);
+        workLog.setProjectId(100L);
+        workLog.setPatternPage(5);
+        workLog.setContent("소매 분리 후 몸판 계속 진행");
+
+        when(workLogService.update(
+                eq(1L),
+                eq(100L),
+                eq(2L),
+                any(WorkLogUpdateRequest.class)
+        )).thenReturn(
+                new WorkLogResponse(workLog)
+        );
+
+        String body = """
+            {
+              "content": "소매 분리 후 몸판 계속 진행"
+            }
+            """;
+
+
+        // when & then
+        mockMvc.perform(
+                        patch("/api/projects/100/work-logs/2")
+                                .with(
+                                        authentication(
+                                                new UsernamePasswordAuthenticationToken(
+                                                        1L,
+                                                        null,
+                                                        Collections.emptyList()
+                                                )
+                                        )
+                                )
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(body)
+                )
+                .andExpect(status().isOk())
+                .andExpect(
+                        jsonPath("$.workLogId")
+                                .value(2L)
+                )
+                .andExpect(
+                        jsonPath("$.projectId")
+                                .value(100L)
+                )
+                .andExpect(
+                        jsonPath("$.patternPage")
+                                .value(5)
+                )
+                .andExpect(
+                        jsonPath("$.content")
+                                .value("소매 분리 후 몸판 계속 진행")
+                );
+
+        verify(workLogService).update(
+                eq(1L),
+                eq(100L),
+                eq(2L),
+                any(WorkLogUpdateRequest.class)
+        );
+    }
+
+    @Test
+    void update_invalidPatternPage_returns400()
+            throws Exception {
+
+        String body = """
+            {
+              "patternPage": 0
+            }
+            """;
+
+        mockMvc.perform(
+                        patch("/api/projects/100/work-logs/2")
+                                .with(
+                                        authentication(
+                                                new UsernamePasswordAuthenticationToken(
+                                                        1L,
+                                                        null,
+                                                        Collections.emptyList()
+                                                )
+                                        )
+                                )
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(body)
+                )
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(workLogService);
+    }
+
+    @Test
+    void update_exceedsTotalPages_returns400()
+            throws Exception {
+
+        when(workLogService.update(
+                eq(1L),
+                eq(100L),
+                eq(2L),
+                any(WorkLogUpdateRequest.class)
+        )).thenThrow(
+                new InvalidWorkLogPageException()
+        );
+
+        String body = """
+            {
+              "patternPage": 999
+            }
+            """;
+
+        mockMvc.perform(
+                        patch("/api/projects/100/work-logs/2")
+                                .with(
+                                        authentication(
+                                                new UsernamePasswordAuthenticationToken(
+                                                        1L,
+                                                        null,
+                                                        Collections.emptyList()
+                                                )
+                                        )
+                                )
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(body)
+                )
+                .andExpect(status().isBadRequest())
+                .andExpect(
+                        jsonPath("$.message")
+                                .value(
+                                        "작업 기록 페이지가 도안의 전체 페이지 범위를 벗어났습니다."
+                                )
+                );
+    }
+
+    @Test
+    void update_blankContent_returns400()
+            throws Exception {
+
+        when(workLogService.update(
+                eq(1L),
+                eq(100L),
+                eq(2L),
+                any(WorkLogUpdateRequest.class)
+        )).thenThrow(
+                new InvalidWorkLogContentException()
+        );
+
+        String body = """
+            {
+              "content": "   "
+            }
+            """;
+
+        mockMvc.perform(
+                        patch("/api/projects/100/work-logs/2")
+                                .with(
+                                        authentication(
+                                                new UsernamePasswordAuthenticationToken(
+                                                        1L,
+                                                        null,
+                                                        Collections.emptyList()
+                                                )
+                                        )
+                                )
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(body)
+                )
+                .andExpect(status().isBadRequest())
+                .andExpect(
+                        jsonPath("$.message")
+                                .value(
+                                        "작업 내용은 비어 있을 수 없습니다."
+                                )
+                );
+    }
+
+    @Test
+    void update_workLogNotFound_returns404()
+            throws Exception {
+
+        when(workLogService.update(
+                eq(1L),
+                eq(100L),
+                eq(999L),
+                any(WorkLogUpdateRequest.class)
+        )).thenThrow(
+                new WorkLogNotFoundException()
+        );
+
+        String body = """
+            {
+              "content": "수정 내용"
+            }
+            """;
+
+        mockMvc.perform(
+                        patch("/api/projects/100/work-logs/999")
+                                .with(
+                                        authentication(
+                                                new UsernamePasswordAuthenticationToken(
+                                                        1L,
+                                                        null,
+                                                        Collections.emptyList()
+                                                )
+                                        )
+                                )
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(body)
+                )
+                .andExpect(status().isNotFound())
+                .andExpect(
+                        jsonPath("$.message")
+                                .value(
+                                        "작업 기록을 찾을 수 없습니다."
+                                )
+                );
+    }
+
+    @Test
+    void update_withoutAuthentication_returns401()
+            throws Exception {
+
+        String body = """
+            {
+              "content": "수정 내용"
+            }
+            """;
+
+        mockMvc.perform(
+                        patch("/api/projects/100/work-logs/2")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(body)
+                )
+                .andExpect(status().isUnauthorized());
+
+        verifyNoInteractions(workLogService);
+    }
+
+    @Test
+    void delete_success() throws Exception {
+
+        mockMvc.perform(
+                        delete("/api/projects/100/work-logs/10")
+                                .with(
+                                        authentication(
+                                                new UsernamePasswordAuthenticationToken(
+                                                        1L,
+                                                        null,
+                                                        Collections.emptyList()
+                                                )
+                                        )
+                                )
+                )
+                .andExpect(status().isNoContent());
+
+        verify(workLogService)
+                .delete(
+                        1L,
+                        100L,
+                        10L
+                );
+    }
+
+    @Test
+    void delete_workLogNotFound_returns404()
+            throws Exception {
+
+        doThrow(new WorkLogNotFoundException())
+                .when(workLogService)
+                .delete(
+                        1L,
+                        100L,
+                        999L
+                );
+
+        mockMvc.perform(
+                        delete("/api/projects/100/work-logs/999")
+                                .with(
+                                        authentication(
+                                                new UsernamePasswordAuthenticationToken(
+                                                        1L,
+                                                        null,
+                                                        Collections.emptyList()
+                                                )
+                                        )
+                                )
+                )
+                .andExpect(status().isNotFound())
+                .andExpect(
+                        jsonPath("$.message")
+                                .value("작업 기록을 찾을 수 없습니다.")
+                );
+    }
+
+    @Test
+    void delete_projectNotFound_returns404()
+            throws Exception {
+
+        doThrow(new ProjectNotFoundException())
+                .when(workLogService)
+                .delete(
+                        1L,
+                        999L,
+                        10L
+                );
+
+        mockMvc.perform(
+                        delete("/api/projects/999/work-logs/10")
+                                .with(
+                                        authentication(
+                                                new UsernamePasswordAuthenticationToken(
+                                                        1L,
+                                                        null,
+                                                        Collections.emptyList()
+                                                )
+                                        )
+                                )
+                )
+                .andExpect(status().isNotFound())
+                .andExpect(
+                        jsonPath("$.message")
+                                .value("프로젝트를 찾을 수 없습니다.")
+                );
+    }
+    @Test
+    void delete_withoutAuthentication_returns401()
+            throws Exception {
+
+        mockMvc.perform(
+                        delete("/api/projects/100/work-logs/10")
+                )
+                .andExpect(status().isUnauthorized());
+
+        verifyNoInteractions(workLogService);
+    }
+
 }

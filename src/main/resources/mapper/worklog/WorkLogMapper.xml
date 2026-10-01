@@ -45,4 +45,46 @@
         ORDER BY created_at ASC, work_log_id ASC
 
     </select>
+
+    <select id="findById"
+            resultType="com.hanttamhanttam.worklog.domain.WorkLog">
+
+        SELECT
+        work_log_id AS workLogId,
+        project_id AS projectId,
+        pattern_page AS patternPage,
+        content,
+        created_at AS createdAt,
+        updated_at AS updatedAt
+
+        FROM work_logs
+
+        WHERE work_log_id = #{workLogId}
+        AND project_id = #{projectId}
+
+    </select>
+
+    <update id="update">
+
+        UPDATE work_logs
+
+        SET
+        pattern_page = #{patternPage},
+        content = #{content},
+        updated_at = NOW()
+
+        WHERE work_log_id = #{workLogId}
+        AND project_id = #{projectId}
+
+    </update>
+
+    <delete id="delete">
+
+        DELETE FROM work_logs
+
+        WHERE work_log_id = #{workLogId}
+        AND project_id = #{projectId}
+
+    </delete>
+
 </mapper>
